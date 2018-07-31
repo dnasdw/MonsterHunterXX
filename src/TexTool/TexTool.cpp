@@ -3,13 +3,6 @@
 #include <png.h>
 #include <PVRTextureUtilities.h>
 
-enum EConst
-{
-	kConstGroupsOfBytesWidth = 64,
-	kConstGroupsOfBytesHeight = 8,
-	kConst16B = 16
-};
-
 #include SDW_MSC_PUSH_PACKED
 struct STexHeader
 {
@@ -23,6 +16,13 @@ struct STexHeader
 	u8 Unknown0xE[2];
 } SDW_GNUC_PACKED;
 #include SDW_MSC_POP_PACKED
+
+enum EConst
+{
+	kConstGroupsOfBytesWidth = 64,
+	kConstGroupsOfBytesHeight = 8,
+	kConst16B = 16
+};
 
 enum ETextureFormat
 {
