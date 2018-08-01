@@ -200,8 +200,8 @@ bool code32BPPTex(u8* a_pTex, bool a_bDecode)
 		{
 			n32 nMipmapWidthSrc = pPVRTexture->getWidth(i);
 			n32 nMipmapHeightSrc = pPVRTexture->getHeight(i);
-			n32 nMipmapWidthDest = nWidth >> i;
-			n32 nMipmapHeightDest = nHeight >> i;
+			n32 nMipmapWidthDest = max<n32>(nWidth >> i, 1);
+			n32 nMipmapHeightDest = max<n32>(nHeight >> i, 1);
 			nMipmapWidthDest = getBoundWidth(nMipmapWidthDest, pTexHeader->Format);
 			nMipmapHeightDest = getBoundHeight(nMipmapHeightDest, pTexHeader->Format);
 			nBlockHeight = getBlockHeight(nMipmapHeightDest, pTexHeader->Format);
@@ -391,8 +391,8 @@ int UMain(int argc, UChar* argv[])
 	u32 uFontSize = uHeaderSize;
 	for (n32 i = 0; i < 11; i++)
 	{
-		n32 nWidth = 1024 >> i;
-		n32 nHeight = 1024 >> i;
+		n32 nWidth = max<n32>(1024 >> i, 1);
+		n32 nHeight = max<n32>(1024 >> i, 1);
 		nWidth = getBoundWidth(nWidth, kTextureFormat_R8_G8_B8_A8_0x07);
 		nHeight = getBoundHeight(nHeight, kTextureFormat_R8_G8_B8_A8_0x07);
 		uFontSize += nWidth * nHeight * 4;
@@ -438,8 +438,8 @@ int UMain(int argc, UChar* argv[])
 		for (u32 j = 0; j < pTexHeader->MipmapLevel; j++)
 		{
 			*reinterpret_cast<u32*>(&*mTexFile[i].begin() + sizeof(STexHeader) + 4 + j * 4) = uTotalSize;
-			n32 nWidth = 1024 >> j;
-			n32 nHeight = 1024 >> j;
+			n32 nWidth = max<n32>(1024 >> j, 1);
+			n32 nHeight = max<n32>(1024 >> j, 1);
 			nWidth = getBoundWidth(nWidth, kTextureFormat_R8_G8_B8_A8_0x07);
 			nHeight = getBoundHeight(nHeight, kTextureFormat_R8_G8_B8_A8_0x07);
 			uTotalSize += nWidth * nHeight * 4;
