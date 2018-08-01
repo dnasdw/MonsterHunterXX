@@ -305,7 +305,7 @@ template <bool bRange> void OptimizeAlpha(float *pX, float *pY, const float *pPo
 //-------------------------------------------------------------------------------------
 
 //typedef void (*BC_DECODE)(XMVECTOR *pColor, const uint8_t *pBC);
-//typedef void (*BC_ENCODE)(uint8_t *pDXT, const XMVECTOR *pColor, DWORD flags);
+//typedef void (*BC_ENCODE)(uint8_t *pDXT, const XMVECTOR *pColor, uint32_t flags);
 
 void D3DXDecodeBC1(uint8_t *pColor, _In_reads_(8) const uint8_t *pBC);
 void D3DXDecodeBC2(uint8_t *pColor, _In_reads_(16) const uint8_t *pBC);
@@ -318,17 +318,17 @@ void D3DXDecodeBC5S(uint8_t *pColor, _In_reads_(16) const uint8_t *pBC);
 //void D3DXDecodeBC6HS(_Out_writes_(NUM_PIXELS_PER_BLOCK) XMVECTOR *pColor, _In_reads_(16) const uint8_t *pBC);
 void D3DXDecodeBC7(uint8_t *pColor, _In_reads_(16) const uint8_t *pBC);
 
-void D3DXEncodeBC1(_Out_writes_(8) uint8_t *pBC, const uint8_t *pColor, _In_ float threshold, _In_ DWORD flags);
+void D3DXEncodeBC1(_Out_writes_(8) uint8_t *pBC, const uint8_t *pColor, _In_ float threshold, _In_ uint32_t flags);
     // BC1 requires one additional parameter, so it doesn't match signature of BC_ENCODE above
 
-void D3DXEncodeBC2(_Out_writes_(16) uint8_t *pBC, const uint8_t *pColor, _In_ DWORD flags);
-void D3DXEncodeBC3(_Out_writes_(16) uint8_t *pBC, const uint8_t *pColor, _In_ DWORD flags);
-void D3DXEncodeBC4U(_Out_writes_(8) uint8_t *pBC, const uint8_t *pColor, _In_ DWORD flags);
-//void D3DXEncodeBC4S(_Out_writes_(8) uint8_t *pBC, _In_reads_(NUM_PIXELS_PER_BLOCK) const XMVECTOR *pColor, _In_ DWORD flags);
-void D3DXEncodeBC5U(_Out_writes_(16) uint8_t *pBC, const uint8_t *pColor, _In_ DWORD flags);
-//void D3DXEncodeBC5S(_Out_writes_(16) uint8_t *pBC, _In_reads_(NUM_PIXELS_PER_BLOCK) const XMVECTOR *pColor, _In_ DWORD flags);
-//void D3DXEncodeBC6HU(_Out_writes_(16) uint8_t *pBC, _In_reads_(NUM_PIXELS_PER_BLOCK) const XMVECTOR *pColor, _In_ DWORD flags);
-//void D3DXEncodeBC6HS(_Out_writes_(16) uint8_t *pBC, _In_reads_(NUM_PIXELS_PER_BLOCK) const XMVECTOR *pColor, _In_ DWORD flags);
-//void D3DXEncodeBC7(_Out_writes_(16) uint8_t *pBC, _In_reads_(NUM_PIXELS_PER_BLOCK) const XMVECTOR *pColor, _In_ DWORD flags);
+void D3DXEncodeBC2(_Out_writes_(16) uint8_t *pBC, const uint8_t *pColor, _In_ uint32_t flags);
+void D3DXEncodeBC3(_Out_writes_(16) uint8_t *pBC, const uint8_t *pColor, _In_ uint32_t flags);
+void D3DXEncodeBC4U(_Out_writes_(8) uint8_t *pBC, const uint8_t *pColor, _In_ uint32_t flags);
+//void D3DXEncodeBC4S(_Out_writes_(8) uint8_t *pBC, _In_reads_(NUM_PIXELS_PER_BLOCK) const XMVECTOR *pColor, _In_ uint32_t flags);
+void D3DXEncodeBC5U(_Out_writes_(16) uint8_t *pBC, const uint8_t *pColor, _In_ uint32_t flags);
+//void D3DXEncodeBC5S(_Out_writes_(16) uint8_t *pBC, _In_reads_(NUM_PIXELS_PER_BLOCK) const XMVECTOR *pColor, _In_ uint32_t flags);
+//void D3DXEncodeBC6HU(_Out_writes_(16) uint8_t *pBC, _In_reads_(NUM_PIXELS_PER_BLOCK) const XMVECTOR *pColor, _In_ uint32_t flags);
+//void D3DXEncodeBC6HS(_Out_writes_(16) uint8_t *pBC, _In_reads_(NUM_PIXELS_PER_BLOCK) const XMVECTOR *pColor, _In_ uint32_t flags);
+//void D3DXEncodeBC7(_Out_writes_(16) uint8_t *pBC, _In_reads_(NUM_PIXELS_PER_BLOCK) const XMVECTOR *pColor, _In_ uint32_t flags);
 
 } // namespace

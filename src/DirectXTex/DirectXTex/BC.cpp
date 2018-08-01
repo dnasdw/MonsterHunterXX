@@ -372,7 +372,7 @@ namespace
         _In_reads_(NUM_PIXELS_PER_BLOCK) const HDRColorA *pColor,
         bool bColorKey,
         float threshold,
-        DWORD flags)
+        uint32_t flags)
     {
         assert(pBC && pColor);
         static_assert(sizeof(D3DX_BC1) == 8, "D3DX_BC1 should be 8 bytes");
@@ -744,7 +744,7 @@ void DirectX::D3DXDecodeBC1(uint8_t *pColor, const uint8_t *pBC)
 }
 
 _Use_decl_annotations_
-void DirectX::D3DXEncodeBC1(uint8_t *pBC, const uint8_t *pColor, float threshold, DWORD flags)
+void DirectX::D3DXEncodeBC1(uint8_t *pBC, const uint8_t *pColor, float threshold, uint32_t flags)
 {
     assert(pBC && pColor);
 
@@ -828,7 +828,7 @@ void DirectX::D3DXDecodeBC2(uint8_t *pColor, const uint8_t *pBC)
     DecodeBC1(pColorInternal, &pBC2->bc1, false);
 
     // 4-bit alpha part
-    DWORD dw = pBC2->bitmap[0];
+    uint32_t dw = pBC2->bitmap[0];
 
     for (size_t i = 0; i < 8; ++i, dw >>= 4)
     {
@@ -851,7 +851,7 @@ void DirectX::D3DXDecodeBC2(uint8_t *pColor, const uint8_t *pBC)
 }
 
 _Use_decl_annotations_
-void DirectX::D3DXEncodeBC2(uint8_t *pBC, const uint8_t *pColor, DWORD flags)
+void DirectX::D3DXEncodeBC2(uint8_t *pBC, const uint8_t *pColor, uint32_t flags)
 {
     assert(pBC && pColor);
     //static_assert(sizeof(D3DX_BC2) == 16, "D3DX_BC2 should be 16 bytes");
@@ -984,7 +984,7 @@ void DirectX::D3DXDecodeBC3(uint8_t *pColor, const uint8_t *pBC)
 }
 
 _Use_decl_annotations_
-void DirectX::D3DXEncodeBC3(uint8_t *pBC, const uint8_t *pColor, DWORD flags)
+void DirectX::D3DXEncodeBC3(uint8_t *pBC, const uint8_t *pColor, uint32_t flags)
 {
     assert(pBC && pColor);
     //static_assert(sizeof(D3DX_BC3) == 16, "D3DX_BC3 should be 16 bytes");

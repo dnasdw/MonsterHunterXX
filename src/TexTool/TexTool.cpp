@@ -1261,7 +1261,7 @@ int encodeTex(const UChar* a_pTexFileName, const UChar* a_pPngFileNamePrefix)
 		u32 uOffset = sizeof(STexHeader) + (pTexHeader->Count == 6 ? 0x6C : 0) + 4 + pTexHeader->MipmapLevel * 4 + (pTexHeader->Count != 1 ? 4 : 0) + i * uDataSize + uDataOffset;
 		pvrtexture::CPVRTexture* pPVRTexture = nullptr;
 		bool bSame = false;
-		if (decode(pTex + uOffset, pTexHeader->Width, pTexHeader->Height, pTexHeader->Format, nBlockHeight, &pPVRTexture) == 0)
+		if (decode(pTex + uOffset, nWidth, nHeight, pTexHeader->Format, nBlockHeight, &pPVRTexture) == 0)
 		{
 			u8* pTextureData = static_cast<u8*>(pPVRTexture->getDataPtr());
 			bSame = true;
