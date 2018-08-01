@@ -547,6 +547,7 @@ void encode(u8* a_pData, n32 a_nWidth, n32 a_nHeight, n32 a_nFormat, n32 a_nMipm
 	}
 	pvrtexture::uint64 uPixelFormat = 0;
 	pvrtexture::ECompressorQuality eCompressorQuality = pvrtexture::ePVRTCBest;
+	n32 nByte = 4;
 	switch (a_nFormat)
 	{
 	case kTextureFormat_R8_G8_B8_A8_0x07:
@@ -566,9 +567,11 @@ void encode(u8* a_pData, n32 a_nWidth, n32 a_nHeight, n32 a_nFormat, n32 a_nMipm
 		break;
 	case kTextureFormat_Bc4_0x19:
 		uPixelFormat = pvrtexture::PixelType('a', 0, 0, 0, 8, 0, 0, 0).PixelTypeID;
+		nByte = 1;
 		break;
 	case kTextureFormat_Bc5_0x1F:
 		uPixelFormat = pvrtexture::PixelType('l', 'a', 0, 0, 8, 8, 0, 0).PixelTypeID;
+		nByte = 2;
 		break;
 	}
 	pvrtexture::Transcode(*pPVRTexture, uPixelFormat, ePVRTVarTypeUnsignedByteNorm, ePVRTCSpacelRGB, eCompressorQuality);
@@ -583,24 +586,80 @@ void encode(u8* a_pData, n32 a_nWidth, n32 a_nHeight, n32 a_nFormat, n32 a_nMipm
 		nMipmapHeightDest = getBoundHeight(nMipmapHeightDest, a_nFormat);
 		n32 nMipmapBlockHeight = getBlockHeight(nMipmapHeightDest, a_nFormat);
 		u8* pData = static_cast<u8*>(pPVRTexture->getDataPtr(l));
-		u8* pRGBA = new u8[nMipmapWidthDest * nMipmapHeightDest * 4];
-		memset(pRGBA, 0, nMipmapWidthDest * nMipmapHeightDest * 4);
-		for (n32 nY = 0; nY < nMipmapHeightSrc; nY++)
+		u8* pRGBA = new u8[nMipmapWidthDest * nMipmapHeightDest * nByte];
+		memset(pRGBA, 0, nMipmapWidthDest * nMipmapHeightDest * nByte);
+		if (nByte == 4)
 		{
-			for (n32 nX = 0; nX < nMipmapWidthSrc; nX++)
+			for (n32 nY = 0; nY < nMipmapHeightSrc; nY++)
 			{
-				*(reinterpret_cast<u32*>(pRGBA) + nY * nMipmapWidthDest + nX) = *(reinterpret_cast<u32*>(pData) + nY * nMipmapWidthSrc + nX);
+				for (n32 nX = 0; nX < nMipmapWidthSrc; nX++)
+				{
+					*(reinterpret_cast<u32*>(pRGBA) + nY * nMipmapWidthDest + nX) = *(reinterpret_cast<u32*>(pData) + nY * nMipmapWidthSrc + nX);
+				}
+			}
+		}
+		else if (nByte == 2)
+		{
+			for (n32 nY = 0; nY < nMipmapHeightSrc; nY++)
+			{
+				for (n32 nX = 0; nX < nMipmapWidthSrc; nX++)
+				{
+					*(reinterpret_cast<u16*>(pRGBA) + nY * nMipmapWidthDest + nX) = *(reinterpret_cast<u16*>(pData) + nY * nMipmapWidthSrc + nX);
+				}
+			}
+		}
+		else if (nByte == 1)
+		{
+			for (n32 nY = 0; nY < nMipmapHeightSrc; nY++)
+			{
+				for (n32 nX = 0; nX < nMipmapWidthSrc; nX++)
+				{
+					*(pRGBA + nY * nMipmapWidthDest + nX) = *(pData + nY * nMipmapWidthSrc + nX);
+				}
 			}
 		}
 		switch (a_nFormat)
 		{
+		case kTextureFormat_R8_G8_B8_A8_0x07:
+			{
+				n32 nBytePerBlock = 4;
+				u8* pTemp = new u8[nMipmapWidthDest * nMipmapHeightDest * nBytePerBlock];
+				{
+					n32 nInnerWidth = kConstGroupsOfBytesWidth / nBytePerBlock;
+					n32 nInnerHeight = nMipmapBlockHeight * kConstGroupsOfBytesHeight;
+					n32 nOutterWidth = nMipmapWidthDest / nInnerWidth;
+					n32 nOutterHeight = nMipmapHeightDest / nInnerHeight;
+					for (n32 i = 0; i < nMipmapWidthDest * nMipmapHeightDest * nBytePerBlock / (nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock); i++)
+					{
+						const u8* pSrc = pRGBA + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+						u8* pDest = pTemp + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+						for (n32 j = 0; j < nInnerHeight * nOutterHeight; j++)
+						{
+							for (n32 k = 0; k < nInnerWidth * nOutterWidth; k++)
+							{
+								memcpy(pDest + (((j / nInnerHeight) * nOutterWidth + (k / nInnerWidth)) * (nInnerWidth * nInnerHeight) + j % nInnerHeight * nInnerWidth + k % nInnerWidth) * nBytePerBlock, pSrc + (j * nInnerWidth * nOutterWidth + k) * nBytePerBlock, nBytePerBlock);
+							}
+						}
+					}
+				}
+				for (n32 i = 0; i < nMipmapWidthDest * nMipmapHeightDest * nBytePerBlock / (kConstGroupsOfBytesWidth * kConstGroupsOfBytesHeight); i++)
+				{
+					for (n32 j = 0; j < kConstGroupsOfBytesWidth / kConst16B * kConstGroupsOfBytesHeight; j++)
+					{
+						memcpy(a_pBuffer + uOffset + i * (kConstGroupsOfBytesWidth * kConstGroupsOfBytesHeight) + s_nDecodeTransByteNX[j] * kConst16B, pTemp + i * (kConstGroupsOfBytesWidth * kConstGroupsOfBytesHeight) + j * kConst16B, kConst16B);
+					}
+				}
+				delete[] pTemp;
+				uOffset += nMipmapWidthDest * nMipmapHeightDest * nBytePerBlock;
+			}
+			break;
 		case kTextureFormat_Bc1_0x13:
 		case kTextureFormat_Bc1_0x1E:
 			{
 				n32 nBlockWidth = 4;
 				n32 nBlockHeight = 4;
-				n32 nBlockColumn = a_nWidth / nBlockWidth;
-				n32 nBlockRow = a_nHeight / nBlockHeight;
+				n32 nBlockColumn = nMipmapWidthDest / nBlockWidth;
+				n32 nBlockRow = nMipmapHeightDest / nBlockHeight;
 				u8* pTemp = new u8[nMipmapWidthDest * nMipmapHeightDest * 4];
 				{
 					n32 nInnerWidth = 4;
@@ -659,14 +718,78 @@ void encode(u8* a_pData, n32 a_nWidth, n32 a_nHeight, n32 a_nFormat, n32 a_nMipm
 				uOffset += nMipmapWidthDest * nMipmapHeightDest / nBlockWidth / nBlockHeight * nBytePerBlock;
 			}
 			break;
+		case kTextureFormat_Bc2_0x15:
+			{
+				n32 nBlockWidth = 4;
+				n32 nBlockHeight = 4;
+				n32 nBlockColumn = nMipmapWidthDest / nBlockWidth;
+				n32 nBlockRow = nMipmapHeightDest / nBlockHeight;
+				u8* pTemp = new u8[nMipmapWidthDest * nMipmapHeightDest * 4];
+				{
+					n32 nInnerWidth = 4;
+					n32 nInnerHeight = 4;
+					n32 nOutterWidth = nMipmapWidthDest / nInnerWidth;
+					n32 nOutterHeight = nMipmapHeightDest / nInnerHeight;
+					n32 nBytePerBlock = 4;
+					for (n32 i = 0; i < nMipmapWidthDest * nMipmapHeightDest * nBytePerBlock / (nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock); i++)
+					{
+						const u8* pSrc = pRGBA + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+						u8* pDest = pTemp + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+						for (n32 j = 0; j < nInnerHeight * nOutterHeight; j++)
+						{
+							for (n32 k = 0; k < nInnerWidth * nOutterWidth; k++)
+							{
+								memcpy(pDest + (((j / nInnerHeight) * nOutterWidth + (k / nInnerWidth)) * (nInnerWidth * nInnerHeight) + j % nInnerHeight * nInnerWidth + k % nInnerWidth) * nBytePerBlock, pSrc + (j * nInnerWidth * nOutterWidth + k) * nBytePerBlock, nBytePerBlock);
+							}
+						}
+					}
+				}
+				{
+					for (n32 i = 0; i < nBlockColumn * nBlockRow; i++)
+					{
+						const u8* pSrc = pTemp + i * 64;
+						u8* pDest = pRGBA + i * 8;
+						DirectX::D3DXEncodeBC2(pDest, pSrc, TEX_COMPRESS_DEFAULT);
+					}
+				}
+				n32 nBytePerBlock = 8;
+				{
+					n32 nInnerWidth = kConstGroupsOfBytesWidth / nBytePerBlock;
+					n32 nInnerHeight = nMipmapBlockHeight * kConstGroupsOfBytesHeight;
+					n32 nOutterWidth = nBlockColumn / nInnerWidth;
+					n32 nOutterHeight = nBlockRow / nInnerHeight;
+					for (n32 i = 0; i < nBlockColumn * nBlockRow * nBytePerBlock / (nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock); i++)
+					{
+						const u8* pSrc = pRGBA + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+						u8* pDest = pTemp + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+						for (n32 j = 0; j < nInnerHeight * nOutterHeight; j++)
+						{
+							for (n32 k = 0; k < nInnerWidth * nOutterWidth; k++)
+							{
+								memcpy(pDest + (((j / nInnerHeight) * nOutterWidth + (k / nInnerWidth)) * (nInnerWidth * nInnerHeight) + j % nInnerHeight * nInnerWidth + k % nInnerWidth) * nBytePerBlock, pSrc + (j * nInnerWidth * nOutterWidth + k) * nBytePerBlock, nBytePerBlock);
+							}
+						}
+					}
+				}
+				for (n32 i = 0; i < nBlockColumn * nBlockRow * nBytePerBlock / (kConstGroupsOfBytesWidth * kConstGroupsOfBytesHeight); i++)
+				{
+					for (n32 j = 0; j < kConstGroupsOfBytesWidth / kConst16B * kConstGroupsOfBytesHeight; j++)
+					{
+						memcpy(a_pBuffer + uOffset + i * (kConstGroupsOfBytesWidth * kConstGroupsOfBytesHeight) + s_nDecodeTransByteNX[j] * kConst16B, pTemp + i * (kConstGroupsOfBytesWidth * kConstGroupsOfBytesHeight) + j * kConst16B, kConst16B);
+					}
+				}
+				delete[] pTemp;
+				uOffset += nMipmapWidthDest * nMipmapHeightDest / nBlockWidth / nBlockHeight * nBytePerBlock;
+			}
+			break;
 		case kTextureFormat_Bc3_0x17:
 		case kTextureFormat_Bc3_0x20:
 		case kTextureFormat_Bc3_0x2A:
 			{
 				n32 nBlockWidth = 4;
 				n32 nBlockHeight = 4;
-				n32 nBlockColumn = a_nWidth / nBlockWidth;
-				n32 nBlockRow = a_nHeight / nBlockHeight;
+				n32 nBlockColumn = nMipmapWidthDest / nBlockWidth;
+				n32 nBlockRow = nMipmapHeightDest / nBlockHeight;
 				u8* pTemp = new u8[nMipmapWidthDest * nMipmapHeightDest * 4];
 				{
 					n32 nInnerWidth = 4;
@@ -693,6 +816,134 @@ void encode(u8* a_pData, n32 a_nWidth, n32 a_nHeight, n32 a_nFormat, n32 a_nMipm
 						const u8* pSrc = pTemp + i * 64;
 						u8* pDest = pRGBA + i * 16;
 						DirectX::D3DXEncodeBC3(pDest, pSrc, TEX_COMPRESS_DEFAULT);
+					}
+				}
+				n32 nBytePerBlock = 16;
+				{
+					n32 nInnerWidth = kConstGroupsOfBytesWidth / nBytePerBlock;
+					n32 nInnerHeight = nMipmapBlockHeight * kConstGroupsOfBytesHeight;
+					n32 nOutterWidth = nBlockColumn / nInnerWidth;
+					n32 nOutterHeight = nBlockRow / nInnerHeight;
+					for (n32 i = 0; i < nBlockColumn * nBlockRow * nBytePerBlock / (nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock); i++)
+					{
+						const u8* pSrc = pRGBA + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+						u8* pDest = pTemp + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+						for (n32 j = 0; j < nInnerHeight * nOutterHeight; j++)
+						{
+							for (n32 k = 0; k < nInnerWidth * nOutterWidth; k++)
+							{
+								memcpy(pDest + (((j / nInnerHeight) * nOutterWidth + (k / nInnerWidth)) * (nInnerWidth * nInnerHeight) + j % nInnerHeight * nInnerWidth + k % nInnerWidth) * nBytePerBlock, pSrc + (j * nInnerWidth * nOutterWidth + k) * nBytePerBlock, nBytePerBlock);
+							}
+						}
+					}
+				}
+				for (n32 i = 0; i < nBlockColumn * nBlockRow * nBytePerBlock / (kConstGroupsOfBytesWidth * kConstGroupsOfBytesHeight); i++)
+				{
+					for (n32 j = 0; j < kConstGroupsOfBytesWidth / kConst16B * kConstGroupsOfBytesHeight; j++)
+					{
+						memcpy(a_pBuffer + uOffset + i * (kConstGroupsOfBytesWidth * kConstGroupsOfBytesHeight) + s_nDecodeTransByteNX[j] * kConst16B, pTemp + i * (kConstGroupsOfBytesWidth * kConstGroupsOfBytesHeight) + j * kConst16B, kConst16B);
+					}
+				}
+				delete[] pTemp;
+				uOffset += nMipmapWidthDest * nMipmapHeightDest / nBlockWidth / nBlockHeight * nBytePerBlock;
+			}
+			break;
+		case kTextureFormat_Bc4_0x19:
+			{
+				n32 nBlockWidth = 4;
+				n32 nBlockHeight = 4;
+				n32 nBlockColumn = nMipmapWidthDest / nBlockWidth;
+				n32 nBlockRow = nMipmapHeightDest / nBlockHeight;
+				u8* pTemp = new u8[nMipmapWidthDest * nMipmapHeightDest];
+				{
+					n32 nInnerWidth = 4;
+					n32 nInnerHeight = 4;
+					n32 nOutterWidth = nMipmapWidthDest / nInnerWidth;
+					n32 nOutterHeight = nMipmapHeightDest / nInnerHeight;
+					n32 nBytePerBlock = 1;
+					for (n32 i = 0; i < nMipmapWidthDest * nMipmapHeightDest * nBytePerBlock / (nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock); i++)
+					{
+						const u8* pSrc = pRGBA + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+						u8* pDest = pTemp + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+						for (n32 j = 0; j < nInnerHeight * nOutterHeight; j++)
+						{
+							for (n32 k = 0; k < nInnerWidth * nOutterWidth; k++)
+							{
+								memcpy(pDest + (((j / nInnerHeight) * nOutterWidth + (k / nInnerWidth)) * (nInnerWidth * nInnerHeight) + j % nInnerHeight * nInnerWidth + k % nInnerWidth) * nBytePerBlock, pSrc + (j * nInnerWidth * nOutterWidth + k) * nBytePerBlock, nBytePerBlock);
+							}
+						}
+					}
+				}
+				{
+					for (n32 i = 0; i < nBlockColumn * nBlockRow; i++)
+					{
+						const u8* pSrc = pTemp + i * 16;
+						u8* pDest = pRGBA + i * 8;
+						DirectX::D3DXEncodeBC4U(pDest, pSrc, TEX_COMPRESS_DEFAULT);
+					}
+				}
+				n32 nBytePerBlock = 8;
+				{
+					n32 nInnerWidth = kConstGroupsOfBytesWidth / nBytePerBlock;
+					n32 nInnerHeight = nMipmapBlockHeight * kConstGroupsOfBytesHeight;
+					n32 nOutterWidth = nBlockColumn / nInnerWidth;
+					n32 nOutterHeight = nBlockRow / nInnerHeight;
+					for (n32 i = 0; i < nBlockColumn * nBlockRow * nBytePerBlock / (nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock); i++)
+					{
+						const u8* pSrc = pRGBA + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+						u8* pDest = pTemp + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+						for (n32 j = 0; j < nInnerHeight * nOutterHeight; j++)
+						{
+							for (n32 k = 0; k < nInnerWidth * nOutterWidth; k++)
+							{
+								memcpy(pDest + (((j / nInnerHeight) * nOutterWidth + (k / nInnerWidth)) * (nInnerWidth * nInnerHeight) + j % nInnerHeight * nInnerWidth + k % nInnerWidth) * nBytePerBlock, pSrc + (j * nInnerWidth * nOutterWidth + k) * nBytePerBlock, nBytePerBlock);
+							}
+						}
+					}
+				}
+				for (n32 i = 0; i < nBlockColumn * nBlockRow * nBytePerBlock / (kConstGroupsOfBytesWidth * kConstGroupsOfBytesHeight); i++)
+				{
+					for (n32 j = 0; j < kConstGroupsOfBytesWidth / kConst16B * kConstGroupsOfBytesHeight; j++)
+					{
+						memcpy(a_pBuffer + uOffset + i * (kConstGroupsOfBytesWidth * kConstGroupsOfBytesHeight) + s_nDecodeTransByteNX[j] * kConst16B, pTemp + i * (kConstGroupsOfBytesWidth * kConstGroupsOfBytesHeight) + j * kConst16B, kConst16B);
+					}
+				}
+				delete[] pTemp;
+				uOffset += nMipmapWidthDest * nMipmapHeightDest / nBlockWidth / nBlockHeight * nBytePerBlock;
+			}
+			break;
+		case kTextureFormat_Bc5_0x1F:
+			{
+				n32 nBlockWidth = 4;
+				n32 nBlockHeight = 4;
+				n32 nBlockColumn = nMipmapWidthDest / nBlockWidth;
+				n32 nBlockRow = nMipmapHeightDest / nBlockHeight;
+				u8* pTemp = new u8[nMipmapWidthDest * nMipmapHeightDest * 2];
+				{
+					n32 nInnerWidth = 4;
+					n32 nInnerHeight = 4;
+					n32 nOutterWidth = nMipmapWidthDest / nInnerWidth;
+					n32 nOutterHeight = nMipmapHeightDest / nInnerHeight;
+					n32 nBytePerBlock = 2;
+					for (n32 i = 0; i < nMipmapWidthDest * nMipmapHeightDest * nBytePerBlock / (nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock); i++)
+					{
+						const u8* pSrc = pRGBA + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+						u8* pDest = pTemp + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+						for (n32 j = 0; j < nInnerHeight * nOutterHeight; j++)
+						{
+							for (n32 k = 0; k < nInnerWidth * nOutterWidth; k++)
+							{
+								memcpy(pDest + (((j / nInnerHeight) * nOutterWidth + (k / nInnerWidth)) * (nInnerWidth * nInnerHeight) + j % nInnerHeight * nInnerWidth + k % nInnerWidth) * nBytePerBlock, pSrc + (j * nInnerWidth * nOutterWidth + k) * nBytePerBlock, nBytePerBlock);
+							}
+						}
+					}
+				}
+				{
+					for (n32 i = 0; i < nBlockColumn * nBlockRow; i++)
+					{
+						const u8* pSrc = pTemp + i * 32;
+						u8* pDest = pRGBA + i * 16;
+						DirectX::D3DXEncodeBC5U(pDest, pSrc, TEX_COMPRESS_DEFAULT);
 					}
 				}
 				n32 nBytePerBlock = 16;
@@ -755,7 +1006,7 @@ int decodeTex(const UChar* a_pTexFileName, const UChar* a_pPngFileNamePrefix)
 		delete[] pTex;
 		return 1;
 	}
-	if (pTexHeader->Unknown0xE[0] != 1 || pTexHeader->Unknown0xE[1] != 0)
+	if (pTexHeader->Unknown0xE[1] != 0)
 	{
 		delete[] pTex;
 		return 1;
@@ -884,7 +1135,7 @@ int encodeTex(const UChar* a_pTexFileName, const UChar* a_pPngFileNamePrefix)
 		delete[] pTex;
 		return 1;
 	}
-	if (pTexHeader->Unknown0xE[0] != 1 || pTexHeader->Unknown0xE[1] != 0)
+	if (pTexHeader->Unknown0xE[1] != 0)
 	{
 		delete[] pTex;
 		return 1;

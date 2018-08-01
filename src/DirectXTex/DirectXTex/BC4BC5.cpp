@@ -427,26 +427,34 @@ void DirectX::D3DXDecodeBC4S(uint8_t *pColor, const uint8_t *pBC)
     }
 }
 
-//_Use_decl_annotations_
-//void DirectX::D3DXEncodeBC4U(uint8_t *pBC, const XMVECTOR *pColor, DWORD flags)
-//{
-//    UNREFERENCED_PARAMETER(flags);
-//
-//    assert(pBC && pColor);
-//    static_assert(sizeof(BC4_UNORM) == 8, "BC4_UNORM should be 8 bytes");
-//
-//    memset(pBC, 0, sizeof(BC4_UNORM));
-//    auto pBC4 = reinterpret_cast<BC4_UNORM*>(pBC);
-//    float theTexelsU[NUM_PIXELS_PER_BLOCK];
-//
-//    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
-//    {
-//        theTexelsU[i] = XMVectorGetX(pColor[i]);
-//    }
-//
-//    FindEndPointsBC4U(theTexelsU, pBC4->red_0, pBC4->red_1);
-//    FindClosestUNORM(pBC4, theTexelsU);
-//}
+_Use_decl_annotations_
+void DirectX::D3DXEncodeBC4U(uint8_t *pBC, const uint8_t *pColor, DWORD flags)
+{
+    UNREFERENCED_PARAMETER(flags);
+
+    assert(pBC && pColor);
+    //static_assert(sizeof(BC4_UNORM) == 8, "BC4_UNORM should be 8 bytes");
+
+    XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK];
+    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+    {
+        pColorInternal[i].vector4_f32[0] = static_cast<float>(pColor[i] / 255.0f);
+        pColorInternal[i].vector4_f32[1] = 0;
+        pColorInternal[i].vector4_f32[2] = 0;
+        pColorInternal[i].vector4_f32[3] = 1.0f;
+    }
+    memset(pBC, 0, sizeof(BC4_UNORM));
+    BC4_UNORM* pBC4 = reinterpret_cast<BC4_UNORM*>(pBC);
+    float theTexelsU[NUM_PIXELS_PER_BLOCK];
+
+    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+    {
+        theTexelsU[i] = XMVectorGetX(pColorInternal[i]);
+    }
+
+    FindEndPointsBC4U(theTexelsU, pBC4->red_0, pBC4->red_1);
+    FindClosestUNORM(pBC4, theTexelsU);
+}
 
 //_Use_decl_annotations_
 //void DirectX::D3DXEncodeBC4S(uint8_t *pBC, const XMVECTOR *pColor, DWORD flags)
@@ -519,39 +527,47 @@ void DirectX::D3DXDecodeBC5S(uint8_t *pColor, const uint8_t *pBC)
     }
 }
 
-//_Use_decl_annotations_
-//void DirectX::D3DXEncodeBC5U(uint8_t *pBC, const XMVECTOR *pColor, DWORD flags)
-//{
-//    UNREFERENCED_PARAMETER(flags);
-//
-//    assert(pBC && pColor);
-//    static_assert(sizeof(BC4_UNORM) == 8, "BC4_UNORM should be 8 bytes");
-//
-//    memset(pBC, 0, sizeof(BC4_UNORM) * 2);
-//    auto pBCR = reinterpret_cast<BC4_UNORM*>(pBC);
-//    auto pBCG = reinterpret_cast<BC4_UNORM*>(pBC + sizeof(BC4_UNORM));
-//    float theTexelsU[NUM_PIXELS_PER_BLOCK];
-//    float theTexelsV[NUM_PIXELS_PER_BLOCK];
-//
-//    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
-//    {
-//        XMFLOAT4A clr;
-//        XMStoreFloat4A(&clr, pColor[i]);
-//        theTexelsU[i] = clr.x;
-//        theTexelsV[i] = clr.y;
-//    }
-//
-//    FindEndPointsBC5U(
-//        theTexelsU,
-//        theTexelsV,
-//        pBCR->red_0,
-//        pBCR->red_1,
-//        pBCG->red_0,
-//        pBCG->red_1);
-//
-//    FindClosestUNORM(pBCR, theTexelsU);
-//    FindClosestUNORM(pBCG, theTexelsV);
-//}
+_Use_decl_annotations_
+void DirectX::D3DXEncodeBC5U(uint8_t *pBC, const uint8_t *pColor, DWORD flags)
+{
+    UNREFERENCED_PARAMETER(flags);
+
+    assert(pBC && pColor);
+    //static_assert(sizeof(BC4_UNORM) == 8, "BC4_UNORM should be 8 bytes");
+
+    XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK];
+    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+    {
+        pColorInternal[i].vector4_f32[0] = static_cast<float>(pColor[i * 2] / 255.0f);
+        pColorInternal[i].vector4_f32[1] = static_cast<float>(pColor[i * 2 + 1] / 255.0f);
+        pColorInternal[i].vector4_f32[2] = 0;
+        pColorInternal[i].vector4_f32[3] = 1.0f;
+    }
+    memset(pBC, 0, sizeof(BC4_UNORM) * 2);
+    BC4_UNORM* pBCR = reinterpret_cast<BC4_UNORM*>(pBC);
+    BC4_UNORM* pBCG = reinterpret_cast<BC4_UNORM*>(pBC + sizeof(BC4_UNORM));
+    float theTexelsU[NUM_PIXELS_PER_BLOCK];
+    float theTexelsV[NUM_PIXELS_PER_BLOCK];
+
+    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+    {
+        XMFLOAT4A clr;
+        XMStoreFloat4A(&clr, pColorInternal[i]);
+        theTexelsU[i] = clr.x;
+        theTexelsV[i] = clr.y;
+    }
+
+    FindEndPointsBC5U(
+        theTexelsU,
+        theTexelsV,
+        pBCR->red_0,
+        pBCR->red_1,
+        pBCG->red_0,
+        pBCG->red_1);
+
+    FindClosestUNORM(pBCR, theTexelsU);
+    FindClosestUNORM(pBCG, theTexelsV);
+}
 
 //_Use_decl_annotations_
 //void DirectX::D3DXEncodeBC5S(uint8_t *pBC, const XMVECTOR *pColor, DWORD flags)
