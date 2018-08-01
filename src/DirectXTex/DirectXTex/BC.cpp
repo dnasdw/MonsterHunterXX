@@ -366,323 +366,323 @@ namespace
     }
 
 
-//    //-------------------------------------------------------------------------------------
-//    void EncodeBC1(
-//        _Out_ D3DX_BC1 *pBC,
-//        _In_reads_(NUM_PIXELS_PER_BLOCK) const HDRColorA *pColor,
-//        bool bColorKey,
-//        float threshold,
-//        DWORD flags)
-//    {
-//        assert(pBC && pColor);
-//        static_assert(sizeof(D3DX_BC1) == 8, "D3DX_BC1 should be 8 bytes");
-//
-//        // Determine if we need to colorkey this block
-//        uint32_t uSteps;
-//
-//        if (bColorKey)
-//        {
-//            size_t uColorKey = 0;
-//
-//            for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
-//            {
-//                if (pColor[i].a < threshold)
-//                    uColorKey++;
-//            }
-//
-//            if (NUM_PIXELS_PER_BLOCK == uColorKey)
-//            {
-//                pBC->rgb[0] = 0x0000;
-//                pBC->rgb[1] = 0xffff;
-//                pBC->bitmap = 0xffffffff;
-//                return;
-//            }
-//
-//            uSteps = (uColorKey > 0) ? 3 : 4;
-//        }
-//        else
-//        {
-//            uSteps = 4;
-//        }
-//
-//        // Quantize block to R56B5, using Floyd Stienberg error diffusion.  This 
-//        // increases the chance that colors will map directly to the quantized 
-//        // axis endpoints.
-//        HDRColorA Color[NUM_PIXELS_PER_BLOCK];
-//        HDRColorA Error[NUM_PIXELS_PER_BLOCK];
-//
-//        if (flags & BC_FLAGS_DITHER_RGB)
-//            memset(Error, 0x00, NUM_PIXELS_PER_BLOCK * sizeof(HDRColorA));
-//
-//        size_t i;
-//        for (i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
-//        {
-//            HDRColorA Clr;
-//            Clr.r = pColor[i].r;
-//            Clr.g = pColor[i].g;
-//            Clr.b = pColor[i].b;
-//            Clr.a = 1.0f;
-//
-//            if (flags & BC_FLAGS_DITHER_RGB)
-//            {
-//                Clr.r += Error[i].r;
-//                Clr.g += Error[i].g;
-//                Clr.b += Error[i].b;
-//            }
-//
-//            Color[i].r = static_cast<float>(static_cast<int32_t>(Clr.r * 31.0f + 0.5f) * (1.0f / 31.0f));
-//            Color[i].g = static_cast<float>(static_cast<int32_t>(Clr.g * 63.0f + 0.5f) * (1.0f / 63.0f));
-//            Color[i].b = static_cast<float>(static_cast<int32_t>(Clr.b * 31.0f + 0.5f) * (1.0f / 31.0f));
-//
-//#ifdef COLOR_WEIGHTS
-//            Color[i].a = pColor[i].a;
-//#else
-//            Color[i].a = 1.0f;
-//#endif // COLOR_WEIGHTS
-//
-//            if (flags & BC_FLAGS_DITHER_RGB)
-//            {
-//                HDRColorA Diff;
-//                Diff.r = Color[i].a * (Clr.r - Color[i].r);
-//                Diff.g = Color[i].a * (Clr.g - Color[i].g);
-//                Diff.b = Color[i].a * (Clr.b - Color[i].b);
-//                Diff.a = 0.0f;
-//
-//                if (3 != (i & 3))
-//                {
-//                    assert(i < 15);
-//                    _Analysis_assume_(i < 15);
-//                    Error[i + 1].r += Diff.r * (7.0f / 16.0f);
-//                    Error[i + 1].g += Diff.g * (7.0f / 16.0f);
-//                    Error[i + 1].b += Diff.b * (7.0f / 16.0f);
-//                }
-//
-//                if (i < 12)
-//                {
-//                    if (i & 3)
-//                    {
-//                        Error[i + 3].r += Diff.r * (3.0f / 16.0f);
-//                        Error[i + 3].g += Diff.g * (3.0f / 16.0f);
-//                        Error[i + 3].b += Diff.b * (3.0f / 16.0f);
-//                    }
-//
-//                    Error[i + 4].r += Diff.r * (5.0f / 16.0f);
-//                    Error[i + 4].g += Diff.g * (5.0f / 16.0f);
-//                    Error[i + 4].b += Diff.b * (5.0f / 16.0f);
-//
-//                    if (3 != (i & 3))
-//                    {
-//                        assert(i < 11);
-//                        _Analysis_assume_(i < 11);
-//                        Error[i + 5].r += Diff.r * (1.0f / 16.0f);
-//                        Error[i + 5].g += Diff.g * (1.0f / 16.0f);
-//                        Error[i + 5].b += Diff.b * (1.0f / 16.0f);
-//                    }
-//                }
-//            }
-//
-//            if (!(flags & BC_FLAGS_UNIFORM))
-//            {
-//                Color[i].r *= g_Luminance.r;
-//                Color[i].g *= g_Luminance.g;
-//                Color[i].b *= g_Luminance.b;
-//            }
-//        }
-//
-//        // Perform 6D root finding function to find two endpoints of color axis.
-//        // Then quantize and sort the endpoints depending on mode.
-//        HDRColorA ColorA, ColorB, ColorC, ColorD;
-//
-//        OptimizeRGB(&ColorA, &ColorB, Color, uSteps, flags);
-//
-//        if (flags & BC_FLAGS_UNIFORM)
-//        {
-//            ColorC = ColorA;
-//            ColorD = ColorB;
-//        }
-//        else
-//        {
-//            ColorC.r = ColorA.r * g_LuminanceInv.r;
-//            ColorC.g = ColorA.g * g_LuminanceInv.g;
-//            ColorC.b = ColorA.b * g_LuminanceInv.b;
-//            ColorC.a = ColorA.a;
-//
-//            ColorD.r = ColorB.r * g_LuminanceInv.r;
-//            ColorD.g = ColorB.g * g_LuminanceInv.g;
-//            ColorD.b = ColorB.b * g_LuminanceInv.b;
-//            ColorD.a = ColorB.a;
-//        }
-//
-//        uint16_t wColorA = Encode565(&ColorC);
-//        uint16_t wColorB = Encode565(&ColorD);
-//
-//        if ((uSteps == 4) && (wColorA == wColorB))
-//        {
-//            pBC->rgb[0] = wColorA;
-//            pBC->rgb[1] = wColorB;
-//            pBC->bitmap = 0x00000000;
-//            return;
-//        }
-//
-//        Decode565(&ColorC, wColorA);
-//        Decode565(&ColorD, wColorB);
-//
-//        if (flags & BC_FLAGS_UNIFORM)
-//        {
-//            ColorA = ColorC;
-//            ColorB = ColorD;
-//        }
-//        else
-//        {
-//            ColorA.r = ColorC.r * g_Luminance.r;
-//            ColorA.g = ColorC.g * g_Luminance.g;
-//            ColorA.b = ColorC.b * g_Luminance.b;
-//
-//            ColorB.r = ColorD.r * g_Luminance.r;
-//            ColorB.g = ColorD.g * g_Luminance.g;
-//            ColorB.b = ColorD.b * g_Luminance.b;
-//        }
-//
-//        // Calculate color steps
-//        HDRColorA Step[4];
-//
-//        if ((3 == uSteps) == (wColorA <= wColorB))
-//        {
-//            pBC->rgb[0] = wColorA;
-//            pBC->rgb[1] = wColorB;
-//
-//            Step[0] = ColorA;
-//            Step[1] = ColorB;
-//        }
-//        else
-//        {
-//            pBC->rgb[0] = wColorB;
-//            pBC->rgb[1] = wColorA;
-//
-//            Step[0] = ColorB;
-//            Step[1] = ColorA;
-//        }
-//
-//        static const size_t pSteps3[] = { 0, 2, 1 };
-//        static const size_t pSteps4[] = { 0, 2, 3, 1 };
-//        const size_t *pSteps;
-//
-//        if (3 == uSteps)
-//        {
-//            pSteps = pSteps3;
-//
-//            HDRColorALerp(&Step[2], &Step[0], &Step[1], 0.5f);
-//        }
-//        else
-//        {
-//            pSteps = pSteps4;
-//
-//            HDRColorALerp(&Step[2], &Step[0], &Step[1], 1.0f / 3.0f);
-//            HDRColorALerp(&Step[3], &Step[0], &Step[1], 2.0f / 3.0f);
-//        }
-//
-//        // Calculate color direction
-//        HDRColorA Dir;
-//        Dir.r = Step[1].r - Step[0].r;
-//        Dir.g = Step[1].g - Step[0].g;
-//        Dir.b = Step[1].b - Step[0].b;
-//        Dir.a = 0.0f;
-//
-//        auto fSteps = static_cast<float>(uSteps - 1);
-//        float fScale = (wColorA != wColorB) ? (fSteps / (Dir.r * Dir.r + Dir.g * Dir.g + Dir.b * Dir.b)) : 0.0f;
-//
-//        Dir.r *= fScale;
-//        Dir.g *= fScale;
-//        Dir.b *= fScale;
-//
-//        // Encode colors
-//        uint32_t dw = 0;
-//        if (flags & BC_FLAGS_DITHER_RGB)
-//            memset(Error, 0x00, NUM_PIXELS_PER_BLOCK * sizeof(HDRColorA));
-//
-//        for (i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
-//        {
-//            if ((3 == uSteps) && (pColor[i].a < threshold))
-//            {
-//                dw = (3u << 30) | (dw >> 2);
-//            }
-//            else
-//            {
-//                HDRColorA Clr;
-//                if (flags & BC_FLAGS_UNIFORM)
-//                {
-//                    Clr.r = pColor[i].r;
-//                    Clr.g = pColor[i].g;
-//                    Clr.b = pColor[i].b;
-//                }
-//                else
-//                {
-//                    Clr.r = pColor[i].r * g_Luminance.r;
-//                    Clr.g = pColor[i].g * g_Luminance.g;
-//                    Clr.b = pColor[i].b * g_Luminance.b;
-//                }
-//                Clr.a = 1.0f;
-//
-//                if (flags & BC_FLAGS_DITHER_RGB)
-//                {
-//                    Clr.r += Error[i].r;
-//                    Clr.g += Error[i].g;
-//                    Clr.b += Error[i].b;
-//                }
-//
-//                float fDot = (Clr.r - Step[0].r) * Dir.r + (Clr.g - Step[0].g) * Dir.g + (Clr.b - Step[0].b) * Dir.b;
-//
-//                uint32_t iStep;
-//                if (fDot <= 0.0f)
-//                    iStep = 0;
-//                else if (fDot >= fSteps)
-//                    iStep = 1;
-//                else
-//                    iStep = uint32_t(pSteps[uint32_t(fDot + 0.5f)]);
-//
-//                dw = (iStep << 30) | (dw >> 2);
-//
-//                if (flags & BC_FLAGS_DITHER_RGB)
-//                {
-//                    HDRColorA Diff;
-//                    Diff.r = Color[i].a * (Clr.r - Step[iStep].r);
-//                    Diff.g = Color[i].a * (Clr.g - Step[iStep].g);
-//                    Diff.b = Color[i].a * (Clr.b - Step[iStep].b);
-//                    Diff.a = 0.0f;
-//
-//                    if (3 != (i & 3))
-//                    {
-//                        Error[i + 1].r += Diff.r * (7.0f / 16.0f);
-//                        Error[i + 1].g += Diff.g * (7.0f / 16.0f);
-//                        Error[i + 1].b += Diff.b * (7.0f / 16.0f);
-//                    }
-//
-//                    if (i < 12)
-//                    {
-//                        if (i & 3)
-//                        {
-//                            Error[i + 3].r += Diff.r * (3.0f / 16.0f);
-//                            Error[i + 3].g += Diff.g * (3.0f / 16.0f);
-//                            Error[i + 3].b += Diff.b * (3.0f / 16.0f);
-//                        }
-//
-//                        Error[i + 4].r += Diff.r * (5.0f / 16.0f);
-//                        Error[i + 4].g += Diff.g * (5.0f / 16.0f);
-//                        Error[i + 4].b += Diff.b * (5.0f / 16.0f);
-//
-//                        if (3 != (i & 3))
-//                        {
-//                            Error[i + 5].r += Diff.r * (1.0f / 16.0f);
-//                            Error[i + 5].g += Diff.g * (1.0f / 16.0f);
-//                            Error[i + 5].b += Diff.b * (1.0f / 16.0f);
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//
-//        pBC->bitmap = dw;
-//    }
+    //-------------------------------------------------------------------------------------
+    void EncodeBC1(
+        _Out_ D3DX_BC1 *pBC,
+        _In_reads_(NUM_PIXELS_PER_BLOCK) const HDRColorA *pColor,
+        bool bColorKey,
+        float threshold,
+        DWORD flags)
+    {
+        assert(pBC && pColor);
+        static_assert(sizeof(D3DX_BC1) == 8, "D3DX_BC1 should be 8 bytes");
+
+        // Determine if we need to colorkey this block
+        uint32_t uSteps;
+
+        if (bColorKey)
+        {
+            size_t uColorKey = 0;
+
+            for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+            {
+                if (pColor[i].a < threshold)
+                    uColorKey++;
+            }
+
+            if (NUM_PIXELS_PER_BLOCK == uColorKey)
+            {
+                pBC->rgb[0] = 0x0000;
+                pBC->rgb[1] = 0xffff;
+                pBC->bitmap = 0xffffffff;
+                return;
+            }
+
+            uSteps = (uColorKey > 0) ? 3 : 4;
+        }
+        else
+        {
+            uSteps = 4;
+        }
+
+        // Quantize block to R56B5, using Floyd Stienberg error diffusion.  This 
+        // increases the chance that colors will map directly to the quantized 
+        // axis endpoints.
+        HDRColorA Color[NUM_PIXELS_PER_BLOCK];
+        HDRColorA Error[NUM_PIXELS_PER_BLOCK];
+
+        if (flags & BC_FLAGS_DITHER_RGB)
+            memset(Error, 0x00, NUM_PIXELS_PER_BLOCK * sizeof(HDRColorA));
+
+        size_t i;
+        for (i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+        {
+            HDRColorA Clr;
+            Clr.r = pColor[i].r;
+            Clr.g = pColor[i].g;
+            Clr.b = pColor[i].b;
+            Clr.a = 1.0f;
+
+            if (flags & BC_FLAGS_DITHER_RGB)
+            {
+                Clr.r += Error[i].r;
+                Clr.g += Error[i].g;
+                Clr.b += Error[i].b;
+            }
+
+            Color[i].r = static_cast<float>(static_cast<int32_t>(Clr.r * 31.0f + 0.5f) * (1.0f / 31.0f));
+            Color[i].g = static_cast<float>(static_cast<int32_t>(Clr.g * 63.0f + 0.5f) * (1.0f / 63.0f));
+            Color[i].b = static_cast<float>(static_cast<int32_t>(Clr.b * 31.0f + 0.5f) * (1.0f / 31.0f));
+
+#ifdef COLOR_WEIGHTS
+            Color[i].a = pColor[i].a;
+#else
+            Color[i].a = 1.0f;
+#endif // COLOR_WEIGHTS
+
+            if (flags & BC_FLAGS_DITHER_RGB)
+            {
+                HDRColorA Diff;
+                Diff.r = Color[i].a * (Clr.r - Color[i].r);
+                Diff.g = Color[i].a * (Clr.g - Color[i].g);
+                Diff.b = Color[i].a * (Clr.b - Color[i].b);
+                Diff.a = 0.0f;
+
+                if (3 != (i & 3))
+                {
+                    assert(i < 15);
+                    _Analysis_assume_(i < 15);
+                    Error[i + 1].r += Diff.r * (7.0f / 16.0f);
+                    Error[i + 1].g += Diff.g * (7.0f / 16.0f);
+                    Error[i + 1].b += Diff.b * (7.0f / 16.0f);
+                }
+
+                if (i < 12)
+                {
+                    if (i & 3)
+                    {
+                        Error[i + 3].r += Diff.r * (3.0f / 16.0f);
+                        Error[i + 3].g += Diff.g * (3.0f / 16.0f);
+                        Error[i + 3].b += Diff.b * (3.0f / 16.0f);
+                    }
+
+                    Error[i + 4].r += Diff.r * (5.0f / 16.0f);
+                    Error[i + 4].g += Diff.g * (5.0f / 16.0f);
+                    Error[i + 4].b += Diff.b * (5.0f / 16.0f);
+
+                    if (3 != (i & 3))
+                    {
+                        assert(i < 11);
+                        _Analysis_assume_(i < 11);
+                        Error[i + 5].r += Diff.r * (1.0f / 16.0f);
+                        Error[i + 5].g += Diff.g * (1.0f / 16.0f);
+                        Error[i + 5].b += Diff.b * (1.0f / 16.0f);
+                    }
+                }
+            }
+
+            if (!(flags & BC_FLAGS_UNIFORM))
+            {
+                Color[i].r *= g_Luminance.r;
+                Color[i].g *= g_Luminance.g;
+                Color[i].b *= g_Luminance.b;
+            }
+        }
+
+        // Perform 6D root finding function to find two endpoints of color axis.
+        // Then quantize and sort the endpoints depending on mode.
+        HDRColorA ColorA, ColorB, ColorC, ColorD;
+
+        OptimizeRGB(&ColorA, &ColorB, Color, uSteps, flags);
+
+        if (flags & BC_FLAGS_UNIFORM)
+        {
+            ColorC = ColorA;
+            ColorD = ColorB;
+        }
+        else
+        {
+            ColorC.r = ColorA.r * g_LuminanceInv.r;
+            ColorC.g = ColorA.g * g_LuminanceInv.g;
+            ColorC.b = ColorA.b * g_LuminanceInv.b;
+            ColorC.a = ColorA.a;
+
+            ColorD.r = ColorB.r * g_LuminanceInv.r;
+            ColorD.g = ColorB.g * g_LuminanceInv.g;
+            ColorD.b = ColorB.b * g_LuminanceInv.b;
+            ColorD.a = ColorB.a;
+        }
+
+        uint16_t wColorA = Encode565(&ColorC);
+        uint16_t wColorB = Encode565(&ColorD);
+
+        if ((uSteps == 4) && (wColorA == wColorB))
+        {
+            pBC->rgb[0] = wColorA;
+            pBC->rgb[1] = wColorB;
+            pBC->bitmap = 0x00000000;
+            return;
+        }
+
+        Decode565(&ColorC, wColorA);
+        Decode565(&ColorD, wColorB);
+
+        if (flags & BC_FLAGS_UNIFORM)
+        {
+            ColorA = ColorC;
+            ColorB = ColorD;
+        }
+        else
+        {
+            ColorA.r = ColorC.r * g_Luminance.r;
+            ColorA.g = ColorC.g * g_Luminance.g;
+            ColorA.b = ColorC.b * g_Luminance.b;
+
+            ColorB.r = ColorD.r * g_Luminance.r;
+            ColorB.g = ColorD.g * g_Luminance.g;
+            ColorB.b = ColorD.b * g_Luminance.b;
+        }
+
+        // Calculate color steps
+        HDRColorA Step[4];
+
+        if ((3 == uSteps) == (wColorA <= wColorB))
+        {
+            pBC->rgb[0] = wColorA;
+            pBC->rgb[1] = wColorB;
+
+            Step[0] = ColorA;
+            Step[1] = ColorB;
+        }
+        else
+        {
+            pBC->rgb[0] = wColorB;
+            pBC->rgb[1] = wColorA;
+
+            Step[0] = ColorB;
+            Step[1] = ColorA;
+        }
+
+        static const size_t pSteps3[] = { 0, 2, 1 };
+        static const size_t pSteps4[] = { 0, 2, 3, 1 };
+        const size_t *pSteps;
+
+        if (3 == uSteps)
+        {
+            pSteps = pSteps3;
+
+            HDRColorALerp(&Step[2], &Step[0], &Step[1], 0.5f);
+        }
+        else
+        {
+            pSteps = pSteps4;
+
+            HDRColorALerp(&Step[2], &Step[0], &Step[1], 1.0f / 3.0f);
+            HDRColorALerp(&Step[3], &Step[0], &Step[1], 2.0f / 3.0f);
+        }
+
+        // Calculate color direction
+        HDRColorA Dir;
+        Dir.r = Step[1].r - Step[0].r;
+        Dir.g = Step[1].g - Step[0].g;
+        Dir.b = Step[1].b - Step[0].b;
+        Dir.a = 0.0f;
+
+        float fSteps = static_cast<float>(uSteps - 1);
+        float fScale = (wColorA != wColorB) ? (fSteps / (Dir.r * Dir.r + Dir.g * Dir.g + Dir.b * Dir.b)) : 0.0f;
+
+        Dir.r *= fScale;
+        Dir.g *= fScale;
+        Dir.b *= fScale;
+
+        // Encode colors
+        uint32_t dw = 0;
+        if (flags & BC_FLAGS_DITHER_RGB)
+            memset(Error, 0x00, NUM_PIXELS_PER_BLOCK * sizeof(HDRColorA));
+
+        for (i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+        {
+            if ((3 == uSteps) && (pColor[i].a < threshold))
+            {
+                dw = (3u << 30) | (dw >> 2);
+            }
+            else
+            {
+                HDRColorA Clr;
+                if (flags & BC_FLAGS_UNIFORM)
+                {
+                    Clr.r = pColor[i].r;
+                    Clr.g = pColor[i].g;
+                    Clr.b = pColor[i].b;
+                }
+                else
+                {
+                    Clr.r = pColor[i].r * g_Luminance.r;
+                    Clr.g = pColor[i].g * g_Luminance.g;
+                    Clr.b = pColor[i].b * g_Luminance.b;
+                }
+                Clr.a = 1.0f;
+
+                if (flags & BC_FLAGS_DITHER_RGB)
+                {
+                    Clr.r += Error[i].r;
+                    Clr.g += Error[i].g;
+                    Clr.b += Error[i].b;
+                }
+
+                float fDot = (Clr.r - Step[0].r) * Dir.r + (Clr.g - Step[0].g) * Dir.g + (Clr.b - Step[0].b) * Dir.b;
+
+                uint32_t iStep;
+                if (fDot <= 0.0f)
+                    iStep = 0;
+                else if (fDot >= fSteps)
+                    iStep = 1;
+                else
+                    iStep = uint32_t(pSteps[uint32_t(fDot + 0.5f)]);
+
+                dw = (iStep << 30) | (dw >> 2);
+
+                if (flags & BC_FLAGS_DITHER_RGB)
+                {
+                    HDRColorA Diff;
+                    Diff.r = Color[i].a * (Clr.r - Step[iStep].r);
+                    Diff.g = Color[i].a * (Clr.g - Step[iStep].g);
+                    Diff.b = Color[i].a * (Clr.b - Step[iStep].b);
+                    Diff.a = 0.0f;
+
+                    if (3 != (i & 3))
+                    {
+                        Error[i + 1].r += Diff.r * (7.0f / 16.0f);
+                        Error[i + 1].g += Diff.g * (7.0f / 16.0f);
+                        Error[i + 1].b += Diff.b * (7.0f / 16.0f);
+                    }
+
+                    if (i < 12)
+                    {
+                        if (i & 3)
+                        {
+                            Error[i + 3].r += Diff.r * (3.0f / 16.0f);
+                            Error[i + 3].g += Diff.g * (3.0f / 16.0f);
+                            Error[i + 3].b += Diff.b * (3.0f / 16.0f);
+                        }
+
+                        Error[i + 4].r += Diff.r * (5.0f / 16.0f);
+                        Error[i + 4].g += Diff.g * (5.0f / 16.0f);
+                        Error[i + 4].b += Diff.b * (5.0f / 16.0f);
+
+                        if (3 != (i & 3))
+                        {
+                            Error[i + 5].r += Diff.r * (1.0f / 16.0f);
+                            Error[i + 5].g += Diff.g * (1.0f / 16.0f);
+                            Error[i + 5].b += Diff.b * (1.0f / 16.0f);
+                        }
+                    }
+                }
+            }
+        }
+
+        pBC->bitmap = dw;
+    }
 
 //    //-------------------------------------------------------------------------------------
 //#ifdef COLOR_WEIGHTS
@@ -743,65 +743,73 @@ void DirectX::D3DXDecodeBC1(uint8_t *pColor, const uint8_t *pBC)
     }
 }
 
-//_Use_decl_annotations_
-//void DirectX::D3DXEncodeBC1(uint8_t *pBC, const XMVECTOR *pColor, float threshold, DWORD flags)
-//{
-//    assert(pBC && pColor);
-//
-//    HDRColorA Color[NUM_PIXELS_PER_BLOCK];
-//
-//    if (flags & BC_FLAGS_DITHER_A)
-//    {
-//        float fError[NUM_PIXELS_PER_BLOCK] = {};
-//
-//        for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
-//        {
-//            HDRColorA clr;
-//            XMStoreFloat4(reinterpret_cast<XMFLOAT4*>(&clr), pColor[i]);
-//
-//            float fAlph = clr.a + fError[i];
-//
-//            Color[i].r = clr.r;
-//            Color[i].g = clr.g;
-//            Color[i].b = clr.b;
-//            Color[i].a = static_cast<float>(static_cast<int32_t>(clr.a + fError[i] + 0.5f));
-//
-//            float fDiff = fAlph - Color[i].a;
-//
-//            if (3 != (i & 3))
-//            {
-//                assert(i < 15);
-//                _Analysis_assume_(i < 15);
-//                fError[i + 1] += fDiff * (7.0f / 16.0f);
-//            }
-//
-//            if (i < 12)
-//            {
-//                if (i & 3)
-//                    fError[i + 3] += fDiff * (3.0f / 16.0f);
-//
-//                fError[i + 4] += fDiff * (5.0f / 16.0f);
-//
-//                if (3 != (i & 3))
-//                {
-//                    assert(i < 11);
-//                    _Analysis_assume_(i < 11);
-//                    fError[i + 5] += fDiff * (1.0f / 16.0f);
-//                }
-//            }
-//        }
-//    }
-//    else
-//    {
-//        for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
-//        {
-//            XMStoreFloat4(reinterpret_cast<XMFLOAT4*>(&Color[i]), pColor[i]);
-//        }
-//    }
-//
-//    auto pBC1 = reinterpret_cast<D3DX_BC1 *>(pBC);
-//    EncodeBC1(pBC1, Color, true, threshold, flags);
-//}
+_Use_decl_annotations_
+void DirectX::D3DXEncodeBC1(uint8_t *pBC, const uint8_t *pColor, float threshold, DWORD flags)
+{
+    assert(pBC && pColor);
+
+    XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK];
+    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+    {
+        pColorInternal[i].vector4_f32[0] = static_cast<float>(pColor[i * 4] / 255.0f);
+        pColorInternal[i].vector4_f32[1] = static_cast<float>(pColor[i * 4 + 1] / 255.0f);
+        pColorInternal[i].vector4_f32[2] = static_cast<float>(pColor[i * 4 + 2] / 255.0f);
+        pColorInternal[i].vector4_f32[3] = static_cast<float>(pColor[i * 4 + 3] / 255.0f);
+    }
+    HDRColorA Color[NUM_PIXELS_PER_BLOCK];
+
+    if (flags & BC_FLAGS_DITHER_A)
+    {
+        float fError[NUM_PIXELS_PER_BLOCK] = {};
+
+        for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+        {
+            HDRColorA clr;
+            XMStoreFloat4(reinterpret_cast<XMFLOAT4*>(&clr), pColorInternal[i]);
+
+            float fAlph = clr.a + fError[i];
+
+            Color[i].r = clr.r;
+            Color[i].g = clr.g;
+            Color[i].b = clr.b;
+            Color[i].a = static_cast<float>(static_cast<int32_t>(clr.a + fError[i] + 0.5f));
+
+            float fDiff = fAlph - Color[i].a;
+
+            if (3 != (i & 3))
+            {
+                assert(i < 15);
+                _Analysis_assume_(i < 15);
+                fError[i + 1] += fDiff * (7.0f / 16.0f);
+            }
+
+            if (i < 12)
+            {
+                if (i & 3)
+                    fError[i + 3] += fDiff * (3.0f / 16.0f);
+
+                fError[i + 4] += fDiff * (5.0f / 16.0f);
+
+                if (3 != (i & 3))
+                {
+                    assert(i < 11);
+                    _Analysis_assume_(i < 11);
+                    fError[i + 5] += fDiff * (1.0f / 16.0f);
+                }
+            }
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+        {
+            XMStoreFloat4(reinterpret_cast<XMFLOAT4*>(&Color[i]), pColorInternal[i]);
+        }
+    }
+
+    D3DX_BC1* pBC1 = reinterpret_cast<D3DX_BC1 *>(pBC);
+    EncodeBC1(pBC1, Color, true, threshold, flags);
+}
 
 
 //-------------------------------------------------------------------------------------
@@ -814,7 +822,7 @@ void DirectX::D3DXDecodeBC2(uint8_t *pColor, const uint8_t *pBC)
     static_assert(sizeof(D3DX_BC2) == 16, "D3DX_BC2 should be 16 bytes");
 
     XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK] = {};
-    auto pBC2 = reinterpret_cast<const D3DX_BC2 *>(pBC);
+    const D3DX_BC2* pBC2 = reinterpret_cast<const D3DX_BC2 *>(pBC);
 
     // RGB part
     DecodeBC1(pColorInternal, &pBC2->bc1, false);
@@ -967,202 +975,210 @@ void DirectX::D3DXDecodeBC3(uint8_t *pColor, const uint8_t *pBC)
     }
 }
 
-//_Use_decl_annotations_
-//void DirectX::D3DXEncodeBC3(uint8_t *pBC, const XMVECTOR *pColor, DWORD flags)
-//{
-//    assert(pBC && pColor);
-//    static_assert(sizeof(D3DX_BC3) == 16, "D3DX_BC3 should be 16 bytes");
-//
-//    HDRColorA Color[NUM_PIXELS_PER_BLOCK];
-//    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
-//    {
-//        XMStoreFloat4(reinterpret_cast<XMFLOAT4*>(&Color[i]), pColor[i]);
-//    }
-//
-//    auto pBC3 = reinterpret_cast<D3DX_BC3 *>(pBC);
-//
-//    // Quantize block to A8, using Floyd Stienberg error diffusion.  This 
-//    // increases the chance that colors will map directly to the quantized 
-//    // axis endpoints.
-//    float fAlpha[NUM_PIXELS_PER_BLOCK] = {};
-//    float fError[NUM_PIXELS_PER_BLOCK] = {};
-//
-//    float fMinAlpha = Color[0].a;
-//    float fMaxAlpha = Color[0].a;
-//
-//    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
-//    {
-//        float fAlph = Color[i].a;
-//        if (flags & BC_FLAGS_DITHER_A)
-//            fAlph += fError[i];
-//
-//        fAlpha[i] = static_cast<int32_t>(fAlph * 255.0f + 0.5f) * (1.0f / 255.0f);
-//
-//        if (fAlpha[i] < fMinAlpha)
-//            fMinAlpha = fAlpha[i];
-//        else if (fAlpha[i] > fMaxAlpha)
-//            fMaxAlpha = fAlpha[i];
-//
-//        if (flags & BC_FLAGS_DITHER_A)
-//        {
-//            float fDiff = fAlph - fAlpha[i];
-//
-//            if (3 != (i & 3))
-//            {
-//                assert(i < 15);
-//                _Analysis_assume_(i < 15);
-//                fError[i + 1] += fDiff * (7.0f / 16.0f);
-//            }
-//
-//            if (i < 12)
-//            {
-//                if (i & 3)
-//                    fError[i + 3] += fDiff * (3.0f / 16.0f);
-//
-//                fError[i + 4] += fDiff * (5.0f / 16.0f);
-//
-//                if (3 != (i & 3))
-//                {
-//                    assert(i < 11);
-//                    _Analysis_assume_(i < 11);
-//                    fError[i + 5] += fDiff * (1.0f / 16.0f);
-//                }
-//            }
-//        }
-//    }
-//
-//#ifdef COLOR_WEIGHTS
-//    if (0.0f == fMaxAlpha)
-//    {
-//        EncodeSolidBC1(&pBC3->dxt1, Color);
-//        pBC3->alpha[0] = 0x00;
-//        pBC3->alpha[1] = 0x00;
-//        memset(pBC3->bitmap, 0x00, 6);
-//    }
-//#endif
-//
-//    // RGB part
-//    EncodeBC1(&pBC3->bc1, Color, false, 0.f, flags);
-//
-//    // Alpha part
-//    if (1.0f == fMinAlpha)
-//    {
-//        pBC3->alpha[0] = 0xff;
-//        pBC3->alpha[1] = 0xff;
-//        memset(pBC3->bitmap, 0x00, 6);
-//        return;
-//    }
-//
-//    // Optimize and Quantize Min and Max values
-//    uint32_t uSteps = ((0.0f == fMinAlpha) || (1.0f == fMaxAlpha)) ? 6 : 8;
-//
-//    float fAlphaA, fAlphaB;
-//    OptimizeAlpha<false>(&fAlphaA, &fAlphaB, fAlpha, uSteps);
-//
-//    auto bAlphaA = static_cast<uint8_t>(static_cast<int32_t>(fAlphaA * 255.0f + 0.5f));
-//    auto bAlphaB = static_cast<uint8_t>(static_cast<int32_t>(fAlphaB * 255.0f + 0.5f));
-//
-//    fAlphaA = static_cast<float>(bAlphaA) * (1.0f / 255.0f);
-//    fAlphaB = static_cast<float>(bAlphaB) * (1.0f / 255.0f);
-//
-//    // Setup block
-//    if ((8 == uSteps) && (bAlphaA == bAlphaB))
-//    {
-//        pBC3->alpha[0] = bAlphaA;
-//        pBC3->alpha[1] = bAlphaB;
-//        memset(pBC3->bitmap, 0x00, 6);
-//        return;
-//    }
-//
-//    static const size_t pSteps6[] = { 0, 2, 3, 4, 5, 1 };
-//    static const size_t pSteps8[] = { 0, 2, 3, 4, 5, 6, 7, 1 };
-//
-//    const size_t *pSteps;
-//    float fStep[8] = {};
-//
-//    if (6 == uSteps)
-//    {
-//        pBC3->alpha[0] = bAlphaA;
-//        pBC3->alpha[1] = bAlphaB;
-//
-//        fStep[0] = fAlphaA;
-//        fStep[1] = fAlphaB;
-//
-//        for (size_t i = 1; i < 5; ++i)
-//            fStep[i + 1] = (fStep[0] * (5 - i) + fStep[1] * i) * (1.0f / 5.0f);
-//
-//        fStep[6] = 0.0f;
-//        fStep[7] = 1.0f;
-//
-//        pSteps = pSteps6;
-//    }
-//    else
-//    {
-//        pBC3->alpha[0] = bAlphaB;
-//        pBC3->alpha[1] = bAlphaA;
-//
-//        fStep[0] = fAlphaB;
-//        fStep[1] = fAlphaA;
-//
-//        for (size_t i = 1; i < 7; ++i)
-//            fStep[i + 1] = (fStep[0] * (7 - i) + fStep[1] * i) * (1.0f / 7.0f);
-//
-//        pSteps = pSteps8;
-//    }
-//
-//    // Encode alpha bitmap
-//    auto fSteps = static_cast<float>(uSteps - 1);
-//    float fScale = (fStep[0] != fStep[1]) ? (fSteps / (fStep[1] - fStep[0])) : 0.0f;
-//
-//    if (flags & BC_FLAGS_DITHER_A)
-//        memset(fError, 0x00, NUM_PIXELS_PER_BLOCK * sizeof(float));
-//
-//    for (size_t iSet = 0; iSet < 2; iSet++)
-//    {
-//        uint32_t dw = 0;
-//
-//        size_t iMin = iSet * 8;
-//        size_t iLim = iMin + 8;
-//
-//        for (size_t i = iMin; i < iLim; ++i)
-//        {
-//            float fAlph = Color[i].a;
-//            if (flags & BC_FLAGS_DITHER_A)
-//                fAlph += fError[i];
-//            float fDot = (fAlph - fStep[0]) * fScale;
-//
-//            uint32_t iStep;
-//            if (fDot <= 0.0f)
-//                iStep = ((6 == uSteps) && (fAlph <= fStep[0] * 0.5f)) ? 6 : 0;
-//            else if (fDot >= fSteps)
-//                iStep = ((6 == uSteps) && (fAlph >= (fStep[1] + 1.0f) * 0.5f)) ? 7 : 1;
-//            else
-//                iStep = uint32_t(pSteps[uint32_t(fDot + 0.5f)]);
-//
-//            dw = (iStep << 21) | (dw >> 3);
-//
-//            if (flags & BC_FLAGS_DITHER_A)
-//            {
-//                float fDiff = (fAlph - fStep[iStep]);
-//
-//                if (3 != (i & 3))
-//                    fError[i + 1] += fDiff * (7.0f / 16.0f);
-//
-//                if (i < 12)
-//                {
-//                    if (i & 3)
-//                        fError[i + 3] += fDiff * (3.0f / 16.0f);
-//
-//                    fError[i + 4] += fDiff * (5.0f / 16.0f);
-//
-//                    if (3 != (i & 3))
-//                        fError[i + 5] += fDiff * (1.0f / 16.0f);
-//                }
-//            }
-//        }
-//
-//        pBC3->bitmap[0 + iSet * 3] = reinterpret_cast<uint8_t *>(&dw)[0];
-//        pBC3->bitmap[1 + iSet * 3] = reinterpret_cast<uint8_t *>(&dw)[1];
-//        pBC3->bitmap[2 + iSet * 3] = reinterpret_cast<uint8_t *>(&dw)[2];
-//    }
-//}
+_Use_decl_annotations_
+void DirectX::D3DXEncodeBC3(uint8_t *pBC, const uint8_t *pColor, DWORD flags)
+{
+    assert(pBC && pColor);
+    //static_assert(sizeof(D3DX_BC3) == 16, "D3DX_BC3 should be 16 bytes");
+
+    XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK];
+    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+    {
+        pColorInternal[i].vector4_f32[0] = static_cast<float>(pColor[i * 4] / 255.0f);
+        pColorInternal[i].vector4_f32[1] = static_cast<float>(pColor[i * 4 + 1] / 255.0f);
+        pColorInternal[i].vector4_f32[2] = static_cast<float>(pColor[i * 4 + 2] / 255.0f);
+        pColorInternal[i].vector4_f32[3] = static_cast<float>(pColor[i * 4 + 3] / 255.0f);
+    }
+    HDRColorA Color[NUM_PIXELS_PER_BLOCK];
+    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+    {
+        XMStoreFloat4(reinterpret_cast<XMFLOAT4*>(&Color[i]), pColorInternal[i]);
+    }
+
+    D3DX_BC3* pBC3 = reinterpret_cast<D3DX_BC3 *>(pBC);
+
+    // Quantize block to A8, using Floyd Stienberg error diffusion.  This 
+    // increases the chance that colors will map directly to the quantized 
+    // axis endpoints.
+    float fAlpha[NUM_PIXELS_PER_BLOCK] = {};
+    float fError[NUM_PIXELS_PER_BLOCK] = {};
+
+    float fMinAlpha = Color[0].a;
+    float fMaxAlpha = Color[0].a;
+
+    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+    {
+        float fAlph = Color[i].a;
+        if (flags & BC_FLAGS_DITHER_A)
+            fAlph += fError[i];
+
+        fAlpha[i] = static_cast<int32_t>(fAlph * 255.0f + 0.5f) * (1.0f / 255.0f);
+
+        if (fAlpha[i] < fMinAlpha)
+            fMinAlpha = fAlpha[i];
+        else if (fAlpha[i] > fMaxAlpha)
+            fMaxAlpha = fAlpha[i];
+
+        if (flags & BC_FLAGS_DITHER_A)
+        {
+            float fDiff = fAlph - fAlpha[i];
+
+            if (3 != (i & 3))
+            {
+                assert(i < 15);
+                _Analysis_assume_(i < 15);
+                fError[i + 1] += fDiff * (7.0f / 16.0f);
+            }
+
+            if (i < 12)
+            {
+                if (i & 3)
+                    fError[i + 3] += fDiff * (3.0f / 16.0f);
+
+                fError[i + 4] += fDiff * (5.0f / 16.0f);
+
+                if (3 != (i & 3))
+                {
+                    assert(i < 11);
+                    _Analysis_assume_(i < 11);
+                    fError[i + 5] += fDiff * (1.0f / 16.0f);
+                }
+            }
+        }
+    }
+
+#ifdef COLOR_WEIGHTS
+    if (0.0f == fMaxAlpha)
+    {
+        EncodeSolidBC1(&pBC3->dxt1, Color);
+        pBC3->alpha[0] = 0x00;
+        pBC3->alpha[1] = 0x00;
+        memset(pBC3->bitmap, 0x00, 6);
+    }
+#endif
+
+    // RGB part
+    EncodeBC1(&pBC3->bc1, Color, false, 0.f, flags);
+
+    // Alpha part
+    if (1.0f == fMinAlpha)
+    {
+        pBC3->alpha[0] = 0xff;
+        pBC3->alpha[1] = 0xff;
+        memset(pBC3->bitmap, 0x00, 6);
+        return;
+    }
+
+    // Optimize and Quantize Min and Max values
+    uint32_t uSteps = ((0.0f == fMinAlpha) || (1.0f == fMaxAlpha)) ? 6 : 8;
+
+    float fAlphaA, fAlphaB;
+    OptimizeAlpha<false>(&fAlphaA, &fAlphaB, fAlpha, uSteps);
+
+    uint8_t bAlphaA = static_cast<uint8_t>(static_cast<int32_t>(fAlphaA * 255.0f + 0.5f));
+    uint8_t bAlphaB = static_cast<uint8_t>(static_cast<int32_t>(fAlphaB * 255.0f + 0.5f));
+
+    fAlphaA = static_cast<float>(bAlphaA) * (1.0f / 255.0f);
+    fAlphaB = static_cast<float>(bAlphaB) * (1.0f / 255.0f);
+
+    // Setup block
+    if ((8 == uSteps) && (bAlphaA == bAlphaB))
+    {
+        pBC3->alpha[0] = bAlphaA;
+        pBC3->alpha[1] = bAlphaB;
+        memset(pBC3->bitmap, 0x00, 6);
+        return;
+    }
+
+    static const size_t pSteps6[] = { 0, 2, 3, 4, 5, 1 };
+    static const size_t pSteps8[] = { 0, 2, 3, 4, 5, 6, 7, 1 };
+
+    const size_t *pSteps;
+    float fStep[8] = {};
+
+    if (6 == uSteps)
+    {
+        pBC3->alpha[0] = bAlphaA;
+        pBC3->alpha[1] = bAlphaB;
+
+        fStep[0] = fAlphaA;
+        fStep[1] = fAlphaB;
+
+        for (size_t i = 1; i < 5; ++i)
+            fStep[i + 1] = (fStep[0] * (5 - i) + fStep[1] * i) * (1.0f / 5.0f);
+
+        fStep[6] = 0.0f;
+        fStep[7] = 1.0f;
+
+        pSteps = pSteps6;
+    }
+    else
+    {
+        pBC3->alpha[0] = bAlphaB;
+        pBC3->alpha[1] = bAlphaA;
+
+        fStep[0] = fAlphaB;
+        fStep[1] = fAlphaA;
+
+        for (size_t i = 1; i < 7; ++i)
+            fStep[i + 1] = (fStep[0] * (7 - i) + fStep[1] * i) * (1.0f / 7.0f);
+
+        pSteps = pSteps8;
+    }
+
+    // Encode alpha bitmap
+    float fSteps = static_cast<float>(uSteps - 1);
+    float fScale = (fStep[0] != fStep[1]) ? (fSteps / (fStep[1] - fStep[0])) : 0.0f;
+
+    if (flags & BC_FLAGS_DITHER_A)
+        memset(fError, 0x00, NUM_PIXELS_PER_BLOCK * sizeof(float));
+
+    for (size_t iSet = 0; iSet < 2; iSet++)
+    {
+        uint32_t dw = 0;
+
+        size_t iMin = iSet * 8;
+        size_t iLim = iMin + 8;
+
+        for (size_t i = iMin; i < iLim; ++i)
+        {
+            float fAlph = Color[i].a;
+            if (flags & BC_FLAGS_DITHER_A)
+                fAlph += fError[i];
+            float fDot = (fAlph - fStep[0]) * fScale;
+
+            uint32_t iStep;
+            if (fDot <= 0.0f)
+                iStep = ((6 == uSteps) && (fAlph <= fStep[0] * 0.5f)) ? 6 : 0;
+            else if (fDot >= fSteps)
+                iStep = ((6 == uSteps) && (fAlph >= (fStep[1] + 1.0f) * 0.5f)) ? 7 : 1;
+            else
+                iStep = uint32_t(pSteps[uint32_t(fDot + 0.5f)]);
+
+            dw = (iStep << 21) | (dw >> 3);
+
+            if (flags & BC_FLAGS_DITHER_A)
+            {
+                float fDiff = (fAlph - fStep[iStep]);
+
+                if (3 != (i & 3))
+                    fError[i + 1] += fDiff * (7.0f / 16.0f);
+
+                if (i < 12)
+                {
+                    if (i & 3)
+                        fError[i + 3] += fDiff * (3.0f / 16.0f);
+
+                    fError[i + 4] += fDiff * (5.0f / 16.0f);
+
+                    if (3 != (i & 3))
+                        fError[i + 5] += fDiff * (1.0f / 16.0f);
+                }
+            }
+        }
+
+        pBC3->bitmap[0 + iSet * 3] = reinterpret_cast<uint8_t *>(&dw)[0];
+        pBC3->bitmap[1 + iSet * 3] = reinterpret_cast<uint8_t *>(&dw)[1];
+        pBC3->bitmap[2 + iSet * 3] = reinterpret_cast<uint8_t *>(&dw)[2];
+    }
+}
