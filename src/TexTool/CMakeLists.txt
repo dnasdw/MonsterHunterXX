@@ -1,5 +1,5 @@
 AUTO_FILES("." "src" "\\.(cpp|h)$")
-AUTO_FILES("${ROOT_SOURCE_DIR}/src/DirectXMath/Inc" "src" "\\.(cpp|h)$")
+AUTO_FILES("${ROOT_SOURCE_DIR}/src/DirectXMath/Inc" "src" "\\.(h|inl)$")
 AUTO_FILES("${ROOT_SOURCE_DIR}/src/DirectXTex/DirectXTex" "src" "\\.(cpp|h)$")
 if(MSVC_VERSION LESS 1600)
   AUTO_FILES("${ROOT_SOURCE_DIR}/msvc" "src" "\\.h$")

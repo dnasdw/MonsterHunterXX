@@ -51,7 +51,9 @@ public:
     float r, g, b, a;
 
 public:
-    //HDRColorA() = default;
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    HDRColorA() = default;
+#else
     HDRColorA()
         : r(0.0f)
         , g(0.0f)
@@ -59,6 +61,7 @@ public:
         , a(0.0f)
     {
     }
+#endif
     HDRColorA(float _r, float _g, float _b, float _a) : r(_r), g(_g), b(_b), a(_a) {}
     HDRColorA(const HDRColorA& c) : r(c.r), g(c.g), b(c.b), a(c.a) {}
 
@@ -311,9 +314,9 @@ void D3DXDecodeBC1(uint8_t *pColor, _In_reads_(8) const uint8_t *pBC);
 void D3DXDecodeBC2(uint8_t *pColor, _In_reads_(16) const uint8_t *pBC);
 void D3DXDecodeBC3(uint8_t *pColor, _In_reads_(16) const uint8_t *pBC);
 void D3DXDecodeBC4U(uint8_t *pColor, _In_reads_(8) const uint8_t *pBC);
-void D3DXDecodeBC4S(uint8_t *pColor, _In_reads_(8) const uint8_t *pBC);
+//void D3DXDecodeBC4S(_Out_writes_(NUM_PIXELS_PER_BLOCK) XMVECTOR *pColor, _In_reads_(8) const uint8_t *pBC);
 void D3DXDecodeBC5U(uint8_t *pColor, _In_reads_(16) const uint8_t *pBC);
-void D3DXDecodeBC5S(uint8_t *pColor, _In_reads_(16) const uint8_t *pBC);
+//void D3DXDecodeBC5S(_Out_writes_(NUM_PIXELS_PER_BLOCK) XMVECTOR *pColor, _In_reads_(16) const uint8_t *pBC);
 //void D3DXDecodeBC6HU(_Out_writes_(NUM_PIXELS_PER_BLOCK) XMVECTOR *pColor, _In_reads_(16) const uint8_t *pBC);
 //void D3DXDecodeBC6HS(_Out_writes_(NUM_PIXELS_PER_BLOCK) XMVECTOR *pColor, _In_reads_(16) const uint8_t *pBC);
 void D3DXDecodeBC7(uint8_t *pColor, _In_reads_(16) const uint8_t *pBC);
@@ -329,6 +332,6 @@ void D3DXEncodeBC5U(_Out_writes_(16) uint8_t *pBC, const uint8_t *pColor, _In_ u
 //void D3DXEncodeBC5S(_Out_writes_(16) uint8_t *pBC, _In_reads_(NUM_PIXELS_PER_BLOCK) const XMVECTOR *pColor, _In_ uint32_t flags);
 //void D3DXEncodeBC6HU(_Out_writes_(16) uint8_t *pBC, _In_reads_(NUM_PIXELS_PER_BLOCK) const XMVECTOR *pColor, _In_ uint32_t flags);
 //void D3DXEncodeBC6HS(_Out_writes_(16) uint8_t *pBC, _In_reads_(NUM_PIXELS_PER_BLOCK) const XMVECTOR *pColor, _In_ uint32_t flags);
-//void D3DXEncodeBC7(_Out_writes_(16) uint8_t *pBC, _In_reads_(NUM_PIXELS_PER_BLOCK) const XMVECTOR *pColor, _In_ uint32_t flags);
+void D3DXEncodeBC7(_Out_writes_(16) uint8_t *pBC, const uint8_t *pColor, _In_ uint32_t flags);
 
 } // namespace

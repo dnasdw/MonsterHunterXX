@@ -24,6 +24,10 @@
 #define ARRAYSIZE(A) SDW_ARRAY_COUNT(A)
 #endif
 
+#ifndef UNREFERENCED_PARAMETER
+#define UNREFERENCED_PARAMETER(P) (P)
+#endif
+
 #ifndef _In_range_
 #define _In_range_(lb,ub)
 #endif
@@ -95,6 +99,10 @@
 
 #ifndef ARRAYSIZE
 #define ARRAYSIZE(A) SDW_ARRAY_COUNT(A)
+#endif
+
+#ifndef UNREFERENCED_PARAMETER
+#define UNREFERENCED_PARAMETER(P) (P)
 #endif
 
 #ifndef _In_range_
@@ -587,12 +595,15 @@ __declspec(align(16)) struct XMMATRIX
     XMVECTOR r[4];
 #endif
 
-    //XMMATRIX() = default;
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    XMMATRIX() = default;
+#else
     XMMATRIX()
     {
     }
+#endif
 
-#if SDW_PLATFORM != SDW_PLATFORM_WINDOWS
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
     XMMATRIX(const XMMATRIX&) = default;
 #endif
 
@@ -605,7 +616,9 @@ __declspec(align(16)) struct XMMATRIX
     XMMATRIX& operator=(XMMATRIX&&) = default;
 #endif
 
-    //constexpr XMMATRIX(FXMVECTOR R0, FXMVECTOR R1, FXMVECTOR R2, CXMVECTOR R3) : r{ R0,R1,R2,R3 } {}
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    constexpr XMMATRIX(FXMVECTOR R0, FXMVECTOR R1, FXMVECTOR R2, CXMVECTOR R3) : r{ R0,R1,R2,R3 } {}
+#else
     XMMATRIX(FXMVECTOR R0, FXMVECTOR R1, FXMVECTOR R2, CXMVECTOR R3)
     {
         r[0] = R0;
@@ -613,6 +626,7 @@ __declspec(align(16)) struct XMMATRIX
         r[2] = R2;
         r[3] = R3;
     }
+#endif
     XMMATRIX(float m00, float m01, float m02, float m03,
              float m10, float m11, float m12, float m13,
              float m20, float m21, float m22, float m23,
@@ -721,10 +735,13 @@ struct XMFLOAT3
     float y;
     float z;
 
-    //XMFLOAT3() = default;
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    XMFLOAT3() = default;
+#else
     XMFLOAT3()
     {
     }
+#endif
 
     //XMFLOAT3(const XMFLOAT3&) = default;
     //XMFLOAT3& operator=(const XMFLOAT3&) = default;
@@ -739,10 +756,13 @@ struct XMFLOAT3
 // 3D Vector; 32 bit floating point components aligned on a 16 byte boundary
 __declspec(align(16)) struct XMFLOAT3A : public XMFLOAT3
 {
-    //XMFLOAT3A() = default;
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    XMFLOAT3A() = default;
+#else
     XMFLOAT3A()
     {
     }
+#endif
 
     //XMFLOAT3A(const XMFLOAT3A&) = default;
     //XMFLOAT3A& operator=(const XMFLOAT3A&) = default;
@@ -802,10 +822,13 @@ struct XMFLOAT4
     float z;
     float w;
 
-    //XMFLOAT4() = default;
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    XMFLOAT4() = default;
+#else
     XMFLOAT4()
     {
     }
+#endif
 
     //XMFLOAT4(const XMFLOAT4&) = default;
     //XMFLOAT4& operator=(const XMFLOAT4&) = default;
@@ -820,10 +843,13 @@ struct XMFLOAT4
 // 4D Vector; 32 bit floating point components aligned on a 16 byte boundary
 __declspec(align(16)) struct XMFLOAT4A : public XMFLOAT4
 {
-    //XMFLOAT4A() = default;
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    XMFLOAT4A() = default;
+#else
     XMFLOAT4A()
     {
     }
+#endif
 
     //XMFLOAT4A(const XMFLOAT4A&) = default;
     //XMFLOAT4A& operator=(const XMFLOAT4A&) = default;
@@ -1833,10 +1859,12 @@ namespace Internal
 template<uint32_t PermuteX, uint32_t PermuteY, uint32_t PermuteZ, uint32_t PermuteW>
     inline XMVECTOR     XM_CALLCONV     XMVectorPermute(FXMVECTOR V1, FXMVECTOR V2)
 {
-    //static_assert(PermuteX <= 7, "PermuteX template parameter out of range");
-    //static_assert(PermuteY <= 7, "PermuteY template parameter out of range");
-    //static_assert(PermuteZ <= 7, "PermuteZ template parameter out of range");
-    //static_assert(PermuteW <= 7, "PermuteW template parameter out of range");
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    static_assert(PermuteX <= 7, "PermuteX template parameter out of range");
+    static_assert(PermuteY <= 7, "PermuteY template parameter out of range");
+    static_assert(PermuteZ <= 7, "PermuteZ template parameter out of range");
+    static_assert(PermuteW <= 7, "PermuteW template parameter out of range");
+#endif
 
 #if defined(_XM_SSE_INTRINSICS_) && !defined(_XM_NO_INTRINSICS_)
     const uint32_t Shuffle = _MM_SHUFFLE(PermuteW & 3, PermuteZ & 3, PermuteY & 3, PermuteX & 3);
@@ -1929,10 +1957,12 @@ template<> inline XMVECTOR      XM_CALLCONV     XMVectorPermute<3,4,5,6>(FXMVECT
 template<uint32_t SwizzleX, uint32_t SwizzleY, uint32_t SwizzleZ, uint32_t SwizzleW>
     inline XMVECTOR     XM_CALLCONV     XMVectorSwizzle(FXMVECTOR V)
 {
-    //static_assert(SwizzleX <= 3, "SwizzleX template parameter out of range");
-    //static_assert(SwizzleY <= 3, "SwizzleY template parameter out of range");
-    //static_assert(SwizzleZ <= 3, "SwizzleZ template parameter out of range");
-    //static_assert(SwizzleW <= 3, "SwizzleW template parameter out of range");
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    static_assert(SwizzleX <= 3, "SwizzleX template parameter out of range");
+    static_assert(SwizzleY <= 3, "SwizzleY template parameter out of range");
+    static_assert(SwizzleZ <= 3, "SwizzleZ template parameter out of range");
+    static_assert(SwizzleW <= 3, "SwizzleW template parameter out of range");
+#endif
 
 #if defined(_XM_SSE_INTRINSICS_) && !defined(_XM_NO_INTRINSICS_)
     return XM_PERMUTE_PS( V, _MM_SHUFFLE( SwizzleW, SwizzleZ, SwizzleY, SwizzleX ) );

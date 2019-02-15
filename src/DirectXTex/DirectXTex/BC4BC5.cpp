@@ -389,7 +389,9 @@ _Use_decl_annotations_
 void DirectX::D3DXDecodeBC4U(uint8_t *pColor, const uint8_t *pBC)
 {
     assert(pColor && pBC);
-    //static_assert(sizeof(BC4_UNORM) == 8, "BC4_UNORM should be 8 bytes");
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    static_assert(sizeof(BC4_UNORM) == 8, "BC4_UNORM should be 8 bytes");
+#endif
 
     XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK];
     const BC4_UNORM* pBC4 = reinterpret_cast<const BC4_UNORM*>(pBC);
@@ -406,26 +408,20 @@ void DirectX::D3DXDecodeBC4U(uint8_t *pColor, const uint8_t *pBC)
     }
 }
 
-_Use_decl_annotations_
-void DirectX::D3DXDecodeBC4S(uint8_t *pColor, const uint8_t *pBC)
-{
-    assert(pColor && pBC);
-    //static_assert(sizeof(BC4_SNORM) == 8, "BC4_SNORM should be 8 bytes");
-
-    XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK];
-    const BC4_SNORM* pBC4 = reinterpret_cast<const BC4_SNORM*>(pBC);
-
-    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
-    {
-#pragma prefast(suppress:22103, "writing blocks in two halves confuses tool")
-        pColorInternal[i] = XMVectorSet(pBC4->R(i), 0, 0, 1.0f);
-    }
-
-    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
-    {
-        pColor[i] = static_cast<uint8_t>(pColorInternal[i].vector4_f32[0] * 255.0f + 128.0f);
-    }
-}
+//_Use_decl_annotations_
+//void DirectX::D3DXDecodeBC4S(XMVECTOR *pColor, const uint8_t *pBC)
+//{
+//    assert(pColor && pBC);
+//    static_assert(sizeof(BC4_SNORM) == 8, "BC4_SNORM should be 8 bytes");
+//
+//    auto pBC4 = reinterpret_cast<const BC4_SNORM*>(pBC);
+//
+//    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+//    {
+//#pragma prefast(suppress:22103, "writing blocks in two halves confuses tool")
+//        pColor[i] = XMVectorSet(pBC4->R(i), 0, 0, 1.0f);
+//    }
+//}
 
 _Use_decl_annotations_
 void DirectX::D3DXEncodeBC4U(uint8_t *pBC, const uint8_t *pColor, uint32_t flags)
@@ -433,7 +429,9 @@ void DirectX::D3DXEncodeBC4U(uint8_t *pBC, const uint8_t *pColor, uint32_t flags
     UNREFERENCED_PARAMETER(flags);
 
     assert(pBC && pColor);
-    //static_assert(sizeof(BC4_UNORM) == 8, "BC4_UNORM should be 8 bytes");
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    static_assert(sizeof(BC4_UNORM) == 8, "BC4_UNORM should be 8 bytes");
+#endif
 
     XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK];
     for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
@@ -485,7 +483,9 @@ _Use_decl_annotations_
 void DirectX::D3DXDecodeBC5U(uint8_t *pColor, const uint8_t *pBC)
 {
     assert(pColor && pBC);
-    //static_assert(sizeof(BC4_UNORM) == 8, "BC4_UNORM should be 8 bytes");
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    static_assert(sizeof(BC4_UNORM) == 8, "BC4_UNORM should be 8 bytes");
+#endif
 
     XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK];
     const BC4_UNORM* pBCR = reinterpret_cast<const BC4_UNORM*>(pBC);
@@ -504,28 +504,21 @@ void DirectX::D3DXDecodeBC5U(uint8_t *pColor, const uint8_t *pBC)
     }
 }
 
-_Use_decl_annotations_
-void DirectX::D3DXDecodeBC5S(uint8_t *pColor, const uint8_t *pBC)
-{
-    assert(pColor && pBC);
-    //static_assert(sizeof(BC4_SNORM) == 8, "BC4_SNORM should be 8 bytes");
-
-    XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK];
-    const BC4_SNORM* pBCR = reinterpret_cast<const BC4_SNORM*>(pBC);
-    const BC4_SNORM* pBCG = reinterpret_cast<const BC4_SNORM*>(pBC + sizeof(BC4_SNORM));
-
-    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
-    {
-#pragma prefast(suppress:22103, "writing blocks in two halves confuses tool")
-        pColorInternal[i] = XMVectorSet(pBCR->R(i), pBCG->R(i), 0, 1.0f);
-    }
-
-    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
-    {
-        pColor[i * 2] = static_cast<uint8_t>(pColorInternal[i].vector4_f32[0] * 255.0f + 128.0f);
-        pColor[i * 2 + 1] = static_cast<uint8_t>(pColorInternal[i].vector4_f32[1] * 255.0f + 128.0f);
-    }
-}
+//_Use_decl_annotations_
+//void DirectX::D3DXDecodeBC5S(XMVECTOR *pColor, const uint8_t *pBC)
+//{
+//    assert(pColor && pBC);
+//    static_assert(sizeof(BC4_SNORM) == 8, "BC4_SNORM should be 8 bytes");
+//
+//    auto pBCR = reinterpret_cast<const BC4_SNORM*>(pBC);
+//    auto pBCG = reinterpret_cast<const BC4_SNORM*>(pBC + sizeof(BC4_SNORM));
+//
+//    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+//    {
+//#pragma prefast(suppress:22103, "writing blocks in two halves confuses tool")
+//        pColor[i] = XMVectorSet(pBCR->R(i), pBCG->R(i), 0, 1.0f);
+//    }
+//}
 
 _Use_decl_annotations_
 void DirectX::D3DXEncodeBC5U(uint8_t *pBC, const uint8_t *pColor, uint32_t flags)
@@ -533,7 +526,9 @@ void DirectX::D3DXEncodeBC5U(uint8_t *pBC, const uint8_t *pColor, uint32_t flags
     UNREFERENCED_PARAMETER(flags);
 
     assert(pBC && pColor);
-    //static_assert(sizeof(BC4_UNORM) == 8, "BC4_UNORM should be 8 bytes");
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    static_assert(sizeof(BC4_UNORM) == 8, "BC4_UNORM should be 8 bytes");
+#endif
 
     XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK];
     for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)

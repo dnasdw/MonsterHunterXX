@@ -748,11 +748,11 @@ void encode(u8* a_pData, n32 a_nWidth, n32 a_nHeight, n32 a_nFormat, n32 a_nMipm
 					for (n32 i = 0; i < nBlockColumn * nBlockRow; i++)
 					{
 						const u8* pSrc = pTemp + i * 64;
-						u8* pDest = pRGBA + i * 8;
+						u8* pDest = pRGBA + i * 16;
 						DirectX::D3DXEncodeBC2(pDest, pSrc, TEX_COMPRESS_DEFAULT);
 					}
 				}
-				n32 nBytePerBlock = 8;
+				n32 nBytePerBlock = 16;
 				{
 					n32 nInnerWidth = kConstGroupsOfBytesWidth / nBytePerBlock;
 					n32 nInnerHeight = nMipmapBlockHeight * kConstGroupsOfBytesHeight;

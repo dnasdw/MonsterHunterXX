@@ -11,6 +11,8 @@
 
 //#include "DirectXTexp.h"
 
+#define TEX_COMPRESS_BC7_QUICK 0x100000
+
 #include "BC.h"
 
 using namespace DirectX;
@@ -336,10 +338,13 @@ namespace DirectX
     public:
         uint8_t r, g, b, a;
 
-        //LDRColorA() = default;
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+        LDRColorA() = default;
+#else
         LDRColorA()
         {
         }
+#endif
         LDRColorA(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a) : r(_r), g(_g), b(_b), a(_a) {}
 
         const uint8_t& operator [] (_In_range_(0, 3) size_t uElement) const
@@ -413,7 +418,9 @@ namespace DirectX
         }
     };
 
-    //static_assert(sizeof(LDRColorA) == 4, "Unexpected packing");
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    static_assert(sizeof(LDRColorA) == 4, "Unexpected packing");
+#endif
 
     struct LDREndPntPair
     {
@@ -453,10 +460,13 @@ namespace
         int pad;
 
     public:
-        //INTColor() = default;
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+        INTColor() = default;
+#else
         INTColor()
         {
         }
+#endif
         INTColor(int nr, int ng, int nb) : pad(0) { r = nr; g = ng; b = nb; }
         INTColor(const INTColor& c) : pad(0) { r = c.r; g = c.g; b = c.b; }
 
@@ -572,15 +582,19 @@ namespace
         }
     };
 
-    //static_assert(sizeof(INTColor) == 16, "Unexpected packing");
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    static_assert(sizeof(INTColor) == 16, "Unexpected packing");
+#endif
 
     struct INTEndPntPair
     {
         INTColor A;
         INTColor B;
+#if SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900
         INTEndPntPair()
         {
         }
+#endif
     };
 
     template< size_t SizeInBytes >
@@ -719,10 +733,16 @@ namespace
             INTColor aIPixels[NUM_PIXELS_PER_BLOCK];
 
             EncodeParams(const HDRColorA* const aOriginal, bool bSignedFormat) :
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+                fBestErr(FLT_MAX), bSigned(bSignedFormat), uMode(0), uShape(0), aHDRPixels(aOriginal), aUnqEndPts{}, aIPixels{}
+#else
                 fBestErr(FLT_MAX), bSigned(bSignedFormat), uMode(0), uShape(0), aHDRPixels(aOriginal)
+#endif
             {
+#if SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900
                 memset(aUnqEndPts, 0, sizeof(aUnqEndPts));
                 memset(aIPixels, 0, sizeof(aIPixels));
+#endif
                 for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
                 {
                     aIPixels[i].Set(aOriginal[i], bSigned);
@@ -797,11 +817,15 @@ namespace
             LDRColorA aLDRPixels[NUM_PIXELS_PER_BLOCK];
             const HDRColorA* const aHDRPixels;
 
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+            EncodeParams(const HDRColorA* const aOriginal) : uMode(0), aEndPts{}, aLDRPixels{}, aHDRPixels(aOriginal) {}
+#else
             EncodeParams(const HDRColorA* const aOriginal) : uMode(0), aHDRPixels(aOriginal)
             {
                 memset(aEndPts, 0, sizeof(aEndPts));
                 memset(aLDRPixels, 0, sizeof(aLDRPixels));
             }
+#endif
         };
 #pragma warning(pop)
 
@@ -2740,112 +2764,112 @@ void D3DX_BC7::Decode(HDRColorA* pOut) const
     }
 }
 
-//_Use_decl_annotations_
-//void D3DX_BC7::Encode(DWORD flags, const HDRColorA* const pIn)
-//{
-//    assert(pIn);
-//
-//    D3DX_BC7 final = *this;
-//    EncodeParams EP(pIn);
-//    float fMSEBest = FLT_MAX;
-//    uint32_t alphaMask = 0xFF;
-//
-//    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
-//    {
-//        EP.aLDRPixels[i].r = uint8_t(std::max<float>(0.0f, std::min<float>(255.0f, pIn[i].r * 255.0f + 0.01f)));
-//        EP.aLDRPixels[i].g = uint8_t(std::max<float>(0.0f, std::min<float>(255.0f, pIn[i].g * 255.0f + 0.01f)));
-//        EP.aLDRPixels[i].b = uint8_t(std::max<float>(0.0f, std::min<float>(255.0f, pIn[i].b * 255.0f + 0.01f)));
-//        EP.aLDRPixels[i].a = uint8_t(std::max<float>(0.0f, std::min<float>(255.0f, pIn[i].a * 255.0f + 0.01f)));
-//        alphaMask &= EP.aLDRPixels[i].a;
-//    }
-//
-//    const bool bHasAlpha = (alphaMask != 0xFF);
-//
-//    for (EP.uMode = 0; EP.uMode < 8 && fMSEBest > 0; ++EP.uMode)
-//    {
-//        if (!(flags & BC_FLAGS_USE_3SUBSETS) && (EP.uMode == 0 || EP.uMode == 2))
-//        {
-//            // 3 subset modes tend to be used rarely and add significant compression time
-//            continue;
-//        }
-//
-//        if ((flags & TEX_COMPRESS_BC7_QUICK) && (EP.uMode != 6))
-//        {
-//            // Use only mode 6
-//            continue;
-//        }
-//
-//        if ((!bHasAlpha) && (EP.uMode == 7))
-//        {
-//            // There is no value in using mode 7 for completely opaque blocks (the other 2 subset modes handle this case for opaque blocks), so skip it for a small perf win.
-//            continue;
-//        }
-//
-//        const size_t uShapes = size_t(1) << ms_aInfo[EP.uMode].uPartitionBits;
-//        assert(uShapes <= BC7_MAX_SHAPES);
-//        _Analysis_assume_(uShapes <= BC7_MAX_SHAPES);
-//
-//        const size_t uNumRots = size_t(1) << ms_aInfo[EP.uMode].uRotationBits;
-//        const size_t uNumIdxMode = size_t(1) << ms_aInfo[EP.uMode].uIndexModeBits;
-//        // Number of rough cases to look at. reasonable values of this are 1, uShapes/4, and uShapes
-//        // uShapes/4 gets nearly all the cases; you can increase that a bit (say by 3 or 4) if you really want to squeeze the last bit out
-//        const size_t uItems = std::max<size_t>(1, uShapes >> 2);
-//        float afRoughMSE[BC7_MAX_SHAPES];
-//        size_t auShape[BC7_MAX_SHAPES];
-//
-//        for (size_t r = 0; r < uNumRots && fMSEBest > 0; ++r)
-//        {
-//            switch (r)
-//            {
-//            case 1: for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; i++) std::swap(EP.aLDRPixels[i].r, EP.aLDRPixels[i].a); break;
-//            case 2: for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; i++) std::swap(EP.aLDRPixels[i].g, EP.aLDRPixels[i].a); break;
-//            case 3: for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; i++) std::swap(EP.aLDRPixels[i].b, EP.aLDRPixels[i].a); break;
-//            }
-//
-//            for (size_t im = 0; im < uNumIdxMode && fMSEBest > 0; ++im)
-//            {
-//                // pick the best uItems shapes and refine these.
-//                for (size_t s = 0; s < uShapes; s++)
-//                {
-//                    afRoughMSE[s] = RoughMSE(&EP, s, im);
-//                    auShape[s] = s;
-//                }
-//
-//                // Bubble up the first uItems items
-//                for (size_t i = 0; i < uItems; i++)
-//                {
-//                    for (size_t j = i + 1; j < uShapes; j++)
-//                    {
-//                        if (afRoughMSE[i] > afRoughMSE[j])
-//                        {
-//                            std::swap(afRoughMSE[i], afRoughMSE[j]);
-//                            std::swap(auShape[i], auShape[j]);
-//                        }
-//                    }
-//                }
-//
-//                for (size_t i = 0; i < uItems && fMSEBest > 0; i++)
-//                {
-//                    float fMSE = Refine(&EP, auShape[i], r, im);
-//                    if (fMSE < fMSEBest)
-//                    {
-//                        final = *this;
-//                        fMSEBest = fMSE;
-//                    }
-//                }
-//            }
-//
-//            switch (r)
-//            {
-//            case 1: for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; i++) std::swap(EP.aLDRPixels[i].r, EP.aLDRPixels[i].a); break;
-//            case 2: for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; i++) std::swap(EP.aLDRPixels[i].g, EP.aLDRPixels[i].a); break;
-//            case 3: for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; i++) std::swap(EP.aLDRPixels[i].b, EP.aLDRPixels[i].a); break;
-//            }
-//        }
-//    }
-//
-//    *this = final;
-//}
+_Use_decl_annotations_
+void D3DX_BC7::Encode(uint32_t flags, const HDRColorA* const pIn)
+{
+    assert(pIn);
+
+    D3DX_BC7 final = *this;
+    EncodeParams EP(pIn);
+    float fMSEBest = FLT_MAX;
+    uint32_t alphaMask = 0xFF;
+
+    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+    {
+        EP.aLDRPixels[i].r = uint8_t(std::max<float>(0.0f, std::min<float>(255.0f, pIn[i].r * 255.0f + 0.01f)));
+        EP.aLDRPixels[i].g = uint8_t(std::max<float>(0.0f, std::min<float>(255.0f, pIn[i].g * 255.0f + 0.01f)));
+        EP.aLDRPixels[i].b = uint8_t(std::max<float>(0.0f, std::min<float>(255.0f, pIn[i].b * 255.0f + 0.01f)));
+        EP.aLDRPixels[i].a = uint8_t(std::max<float>(0.0f, std::min<float>(255.0f, pIn[i].a * 255.0f + 0.01f)));
+        alphaMask &= EP.aLDRPixels[i].a;
+    }
+
+    const bool bHasAlpha = (alphaMask != 0xFF);
+
+    for (EP.uMode = 0; EP.uMode < 8 && fMSEBest > 0; ++EP.uMode)
+    {
+        if (!(flags & BC_FLAGS_USE_3SUBSETS) && (EP.uMode == 0 || EP.uMode == 2))
+        {
+            // 3 subset modes tend to be used rarely and add significant compression time
+            continue;
+        }
+
+        if ((flags & TEX_COMPRESS_BC7_QUICK) && (EP.uMode != 6))
+        {
+            // Use only mode 6
+            continue;
+        }
+
+        if ((!bHasAlpha) && (EP.uMode == 7))
+        {
+            // There is no value in using mode 7 for completely opaque blocks (the other 2 subset modes handle this case for opaque blocks), so skip it for a small perf win.
+            continue;
+        }
+
+        const size_t uShapes = size_t(1) << ms_aInfo[EP.uMode].uPartitionBits;
+        assert(uShapes <= BC7_MAX_SHAPES);
+        _Analysis_assume_(uShapes <= BC7_MAX_SHAPES);
+
+        const size_t uNumRots = size_t(1) << ms_aInfo[EP.uMode].uRotationBits;
+        const size_t uNumIdxMode = size_t(1) << ms_aInfo[EP.uMode].uIndexModeBits;
+        // Number of rough cases to look at. reasonable values of this are 1, uShapes/4, and uShapes
+        // uShapes/4 gets nearly all the cases; you can increase that a bit (say by 3 or 4) if you really want to squeeze the last bit out
+        const size_t uItems = std::max<size_t>(1, uShapes >> 2);
+        float afRoughMSE[BC7_MAX_SHAPES];
+        size_t auShape[BC7_MAX_SHAPES];
+
+        for (size_t r = 0; r < uNumRots && fMSEBest > 0; ++r)
+        {
+            switch (r)
+            {
+            case 1: for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; i++) std::swap(EP.aLDRPixels[i].r, EP.aLDRPixels[i].a); break;
+            case 2: for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; i++) std::swap(EP.aLDRPixels[i].g, EP.aLDRPixels[i].a); break;
+            case 3: for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; i++) std::swap(EP.aLDRPixels[i].b, EP.aLDRPixels[i].a); break;
+            }
+
+            for (size_t im = 0; im < uNumIdxMode && fMSEBest > 0; ++im)
+            {
+                // pick the best uItems shapes and refine these.
+                for (size_t s = 0; s < uShapes; s++)
+                {
+                    afRoughMSE[s] = RoughMSE(&EP, s, im);
+                    auShape[s] = s;
+                }
+
+                // Bubble up the first uItems items
+                for (size_t i = 0; i < uItems; i++)
+                {
+                    for (size_t j = i + 1; j < uShapes; j++)
+                    {
+                        if (afRoughMSE[i] > afRoughMSE[j])
+                        {
+                            std::swap(afRoughMSE[i], afRoughMSE[j]);
+                            std::swap(auShape[i], auShape[j]);
+                        }
+                    }
+                }
+
+                for (size_t i = 0; i < uItems && fMSEBest > 0; i++)
+                {
+                    float fMSE = Refine(&EP, auShape[i], r, im);
+                    if (fMSE < fMSEBest)
+                    {
+                        final = *this;
+                        fMSEBest = fMSE;
+                    }
+                }
+            }
+
+            switch (r)
+            {
+            case 1: for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; i++) std::swap(EP.aLDRPixels[i].r, EP.aLDRPixels[i].a); break;
+            case 2: for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; i++) std::swap(EP.aLDRPixels[i].g, EP.aLDRPixels[i].a); break;
+            case 3: for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; i++) std::swap(EP.aLDRPixels[i].b, EP.aLDRPixels[i].a); break;
+            }
+        }
+    }
+
+    *this = final;
+}
 
 
 //-------------------------------------------------------------------------------------
@@ -3565,7 +3589,9 @@ _Use_decl_annotations_
 void DirectX::D3DXDecodeBC7(uint8_t *pColor, const uint8_t *pBC)
 {
     assert(pColor && pBC);
-    //static_assert(sizeof(D3DX_BC7) == 16, "D3DX_BC7 should be 16 bytes");
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    static_assert(sizeof(D3DX_BC7) == 16, "D3DX_BC7 should be 16 bytes");
+#endif
     XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK];
     reinterpret_cast<const D3DX_BC7*>(pBC)->Decode(reinterpret_cast<HDRColorA*>(pColorInternal));
 
@@ -3578,10 +3604,20 @@ void DirectX::D3DXDecodeBC7(uint8_t *pColor, const uint8_t *pBC)
     }
 }
 
-//_Use_decl_annotations_
-//void DirectX::D3DXEncodeBC7(uint8_t *pBC, const XMVECTOR *pColor, DWORD flags)
-//{
-//    assert(pBC && pColor);
-//    static_assert(sizeof(D3DX_BC7) == 16, "D3DX_BC7 should be 16 bytes");
-//    reinterpret_cast<D3DX_BC7*>(pBC)->Encode(flags, reinterpret_cast<const HDRColorA*>(pColor));
-//}
+_Use_decl_annotations_
+void DirectX::D3DXEncodeBC7(uint8_t *pBC, const uint8_t *pColor, uint32_t flags)
+{
+    assert(pBC && pColor);
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    static_assert(sizeof(D3DX_BC7) == 16, "D3DX_BC7 should be 16 bytes");
+#endif
+    XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK];
+    for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
+    {
+        pColorInternal[i].vector4_f32[0] = static_cast<float>(pColor[i * 4] / 255.0f);
+        pColorInternal[i].vector4_f32[1] = static_cast<float>(pColor[i * 4 + 1] / 255.0f);
+        pColorInternal[i].vector4_f32[2] = static_cast<float>(pColor[i * 4 + 2] / 255.0f);
+        pColorInternal[i].vector4_f32[3] = static_cast<float>(pColor[i * 4 + 3] / 255.0f);
+    }
+    reinterpret_cast<D3DX_BC7*>(pBC)->Encode(flags, reinterpret_cast<const HDRColorA*>(pColorInternal));
+}

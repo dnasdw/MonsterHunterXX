@@ -239,8 +239,13 @@ namespace
             // Evaluate function, and derivatives
             float d2X = 0.f;
             float d2Y = 0.f;
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+            HDRColorA dX = {};
+            HDRColorA dY = {};
+#else
             HDRColorA dX;
             HDRColorA dY;
+#endif
 
             for (size_t iPoint = 0; iPoint < NUM_PIXELS_PER_BLOCK; iPoint++)
             {
@@ -321,7 +326,9 @@ namespace
         bool isbc1)
     {
         assert(pColor && pBC);
-        //static_assert(sizeof(D3DX_BC1) == 8, "D3DX_BC1 should be 8 bytes");
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+        static_assert(sizeof(D3DX_BC1) == 8, "D3DX_BC1 should be 8 bytes");
+#endif
 
         static XMVECTORF32 s_Scale = { { { 1.f / 31.f, 1.f / 63.f, 1.f / 31.f, 1.f } } };
 
@@ -375,7 +382,9 @@ namespace
         uint32_t flags)
     {
         assert(pBC && pColor);
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
         static_assert(sizeof(D3DX_BC1) == 8, "D3DX_BC1 should be 8 bytes");
+#endif
 
         // Determine if we need to colorkey this block
         uint32_t uSteps;
@@ -819,7 +828,9 @@ _Use_decl_annotations_
 void DirectX::D3DXDecodeBC2(uint8_t *pColor, const uint8_t *pBC)
 {
     assert(pColor && pBC);
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
     static_assert(sizeof(D3DX_BC2) == 16, "D3DX_BC2 should be 16 bytes");
+#endif
 
     XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK] = {};
     const D3DX_BC2* pBC2 = reinterpret_cast<const D3DX_BC2 *>(pBC);
@@ -854,7 +865,9 @@ _Use_decl_annotations_
 void DirectX::D3DXEncodeBC2(uint8_t *pBC, const uint8_t *pColor, uint32_t flags)
 {
     assert(pBC && pColor);
-    //static_assert(sizeof(D3DX_BC2) == 16, "D3DX_BC2 should be 16 bytes");
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    static_assert(sizeof(D3DX_BC2) == 16, "D3DX_BC2 should be 16 bytes");
+#endif
 
     XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK];
     for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
@@ -936,7 +949,9 @@ _Use_decl_annotations_
 void DirectX::D3DXDecodeBC3(uint8_t *pColor, const uint8_t *pBC)
 {
     assert(pColor && pBC);
-    //static_assert(sizeof(D3DX_BC3) == 16, "D3DX_BC3 should be 16 bytes");
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    static_assert(sizeof(D3DX_BC3) == 16, "D3DX_BC3 should be 16 bytes");
+#endif
 
     XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK] = {};
     const D3DX_BC3* pBC3 = reinterpret_cast<const D3DX_BC3 *>(pBC);
@@ -987,7 +1002,9 @@ _Use_decl_annotations_
 void DirectX::D3DXEncodeBC3(uint8_t *pBC, const uint8_t *pColor, uint32_t flags)
 {
     assert(pBC && pColor);
-    //static_assert(sizeof(D3DX_BC3) == 16, "D3DX_BC3 should be 16 bytes");
+#if !(SDW_COMPILER == SDW_COMPILER_MSC && SDW_COMPILER_VERSION < 1900)
+    static_assert(sizeof(D3DX_BC3) == 16, "D3DX_BC3 should be 16 bytes");
+#endif
 
     XMVECTOR pColorInternal[NUM_PIXELS_PER_BLOCK];
     for (size_t i = 0; i < NUM_PIXELS_PER_BLOCK; ++i)
