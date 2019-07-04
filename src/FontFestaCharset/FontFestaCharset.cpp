@@ -159,7 +159,7 @@ bool code32BPPTex(u8* a_pTex, bool a_bDecode)
 			n32 nOutterHeight = nHeight / nInnerHeight;
 			for (n32 i = 0; i < nWidth * nHeight * nBytePerBlock / (nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock); i++)
 			{
-				u8* pSrc = pTemp + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
+				const u8* pSrc = pTemp + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
 				u8* pDest = pBuffer + i * nInnerWidth * nInnerHeight * nOutterWidth * nOutterHeight * nBytePerBlock;
 				for (n32 j = 0; j < nInnerHeight * nOutterHeight; j++)
 				{

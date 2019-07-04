@@ -12,7 +12,7 @@ struct SArcHeader
 struct SRecord
 {
 	char FileName[64];
-	u32 Unknown;
+	u32 TypeHash;
 	u32 CompressedSize;
 	u32 UncompressedSize;
 	u32 Offset;
