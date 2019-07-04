@@ -13,7 +13,7 @@ struct SArcHeader
 struct SRecord
 {
 	char FileName[64];
-	u32 Unknown;
+	u32 TypeHash;
 	u32 CompressedSize;
 	u32 UncompressedSize;
 	u32 Offset;
@@ -152,32 +152,32 @@ const char* getExt(const UString& a_sPath, const u8* a_pData, u32 a_uDataSize)
 	{
 		return "203.0";
 	}
-	static u8 c_szExt[5] = {};
-	memcpy(c_szExt, a_pData, 4);
+	static u8 c_uExt[5] = {};
+	memcpy(c_uExt, a_pData, 4);
 	for (n32 i = 0; i < 4; i++)
 	{
-		if (c_szExt[i] == 0xFF)
+		if (c_uExt[i] == 0xFF)
 		{
-			c_szExt[i] = 0;
+			c_uExt[i] = 0;
 		}
-		else if (c_szExt[i] >= 'A' && c_szExt[i] <= 'Z')
+		else if (c_uExt[i] >= 'A' && c_uExt[i] <= 'Z')
 		{
-			c_szExt[i] = c_szExt[i] - 'A' + 'a';
+			c_uExt[i] = c_uExt[i] - 'A' + 'a';
 		}
-		else if (c_szExt[i] != 0 && (c_szExt[i] < '0' || (c_szExt[i] > '9' && c_szExt[i] < 'a') || c_szExt[i] > 'z'))
+		else if (c_uExt[i] != 0 && (c_uExt[i] < '0' || (c_uExt[i] > '9' && c_uExt[i] < 'a') || c_uExt[i] > 'z'))
 		{
 			UPrintf(USTR("%") PRIUS USTR(" unknown file type: %02X %02X %02X %02X\n"), a_sPath.c_str(), a_pData[0], a_pData[1], a_pData[2], a_pData[3]);
-			strcpy(reinterpret_cast<char*>(c_szExt), "bin");
+			strcpy(reinterpret_cast<char*>(c_uExt), "bin");
 			Pause();
 		}
 	}
-	if (c_szExt[0] == 0)
+	if (c_uExt[0] == 0)
 	{
 		UPrintf(USTR("%") PRIUS USTR(" unknown file type: %02X %02X %02X %02X\n"), a_sPath.c_str(), a_pData[0], a_pData[1], a_pData[2], a_pData[3]);
-		strcpy(reinterpret_cast<char*>(c_szExt), "bin");
+		strcpy(reinterpret_cast<char*>(c_uExt), "bin");
 		Pause();
 	}
-	return reinterpret_cast<char*>(c_szExt);
+	return reinterpret_cast<char*>(c_uExt);
 }
 
 int unpackArc(const UChar* a_pFileName, const UChar* a_pDirName, const UChar* a_pConflictDirName)

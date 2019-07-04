@@ -15,7 +15,7 @@ struct SGlyph
 
 int UMain(int argc, UChar* argv[])
 {
-	if (argc != 14)
+	if (argc != 15)
 	{
 		return 1;
 	}
@@ -24,11 +24,12 @@ int UMain(int argc, UChar* argv[])
 	u32 uPixelHeight = SToU32(argv[6]);
 	bool bMono = UCscmp(argv[7], USTR("0")) != 0;
 	f32 fBold = SToF32(argv[8]);
-	n32 nPaddingLeft = SToN32(argv[9]);
-	n32 nPaddingRight = SToN32(argv[10]);
-	n32 nPaddingTop = SToN32(argv[11]);
-	n32 nPaddingBottom = SToN32(argv[12]);
-	n32 nBase = SToN32(argv[13]);
+	bool bGary16 = UCscmp(argv[9], USTR("0")) != 0;
+	n32 nPaddingLeft = SToN32(argv[10]);
+	n32 nPaddingRight = SToN32(argv[11]);
+	n32 nPaddingTop = SToN32(argv[12]);
+	n32 nPaddingBottom = SToN32(argv[13]);
+	n32 nBase = SToN32(argv[14]);
 	FILE* fp = UFopen(argv[1], USTR("rb"), false);
 	if (fp == nullptr)
 	{
@@ -178,6 +179,16 @@ int UMain(int argc, UChar* argv[])
 			FT_Done_Face(pFace);
 			FT_Done_FreeType(pLibrary);
 			return 1;
+		}
+		if (bGary16)
+		{
+			for (u32 i = 0; i < ftBitmap.rows; i++)
+			{
+				for (u32 j = 0; j < ftBitmap.width; j++)
+				{
+					vBuffer[i * ftBitmap.width + j] = vBuffer[i * ftBitmap.width + j] / 0x11 * 0x11;
+				}
+			}
 		}
 		n32 nBitmapLeft = 0;
 		n32 nBitmapRight = ftBitmap.width;
@@ -416,7 +427,10 @@ int UMain(int argc, UChar* argv[])
 			pBitmap[(pBitmapInfoHeader->biHeight - 1 - uBlockPosY * uBlockHeight - (uBlockHeight - 3)) * pBitmapInfoHeader->biWidth + uBlockPosX * uBlockWidth + 2 + nPaddingLeft + nX0 + nLeft + nX] = 0x00FF0000;
 		}
 	}
-	pBitmap[(pBitmapInfoHeader->biHeight - 1 - 2 - nTopMax - nPaddingTop - nBase) * pBitmapInfoHeader->biWidth] = 0x00FFFFFF;
+	if (nTopMax + nPaddingTop + nBase >= 0 && nTopMax + nPaddingTop + nBase <= static_cast<n32>(uHeightMax) + nPaddingTop + nPaddingBottom)
+	{
+		pBitmap[(pBitmapInfoHeader->biHeight - 1 - 2 - nTopMax - nPaddingTop - nBase) * pBitmapInfoHeader->biWidth] = 0x00FFFFFF;
+	}
 	if (pBitmapInfoHeader->biHeight > 0)
 	{
 		pBitmap[(pBitmapInfoHeader->biHeight - 1) * pBitmapInfoHeader->biWidth] = 0x00FFFFFF;
