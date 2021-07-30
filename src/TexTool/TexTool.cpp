@@ -1,5 +1,6 @@
 #include <sdw.h>
 #include <BC.h>
+#include <libyuv.h>
 #include <png.h>
 #include <PVRTextureUtilities.h>
 
@@ -37,7 +38,7 @@ enum ETextureFormat
 	kTextureFormat_Bc1_0x1E = 0x1E,
 	kTextureFormat_Bc5_0x1F = 0x1F,
 	kTextureFormat_Bc3_0x20 = 0x20,
-	kTextureFormat_Bc3_0x2A = 0x2A
+	kTextureFormat_Bc3_AYUV_0x2A = 0x2A
 };
 
 static const n32 s_nDecodeTransByteNX[32] =
@@ -65,7 +66,7 @@ n32 getBoundWidth(n32 a_nWidth, n32 a_nFormat)
 		return static_cast<n32>(Align(a_nWidth, kConstGroupsOfBytesWidth / 16 * 4));
 	case kTextureFormat_Bc3_0x17:
 	case kTextureFormat_Bc3_0x20:
-	case kTextureFormat_Bc3_0x2A:
+	case kTextureFormat_Bc3_AYUV_0x2A:
 		return static_cast<n32>(Align(a_nWidth, kConstGroupsOfBytesWidth / 16 * 4));
 	case kTextureFormat_Bc4_0x19:
 		return static_cast<n32>(Align(a_nWidth, kConstGroupsOfBytesWidth / 8 * 4));
@@ -88,7 +89,7 @@ n32 getBoundHeight(n32 a_nHeight, n32 a_nFormat)
 	case kTextureFormat_Bc1_0x1E:
 	case kTextureFormat_Bc5_0x1F:
 	case kTextureFormat_Bc3_0x20:
-	case kTextureFormat_Bc3_0x2A:
+	case kTextureFormat_Bc3_AYUV_0x2A:
 		return static_cast<n32>(Align(a_nHeight, kConstGroupsOfBytesHeight * 4));
 	}
 	return 0;
@@ -109,7 +110,7 @@ n32 getBlockHeight(n32 a_nHeight, n32 a_nFormat)
 	case kTextureFormat_Bc1_0x1E:
 	case kTextureFormat_Bc5_0x1F:
 	case kTextureFormat_Bc3_0x20:
-	case kTextureFormat_Bc3_0x2A:
+	case kTextureFormat_Bc3_AYUV_0x2A:
 		nBlockHeight = a_nHeight / 4 / kConstGroupsOfBytesHeight;
 		break;
 	}
@@ -289,7 +290,7 @@ int decode(u8* a_pBuffer, n32 a_nWidth, n32 a_nHeight, n32 a_nFormat, n32 a_nBlo
 		break;
 	case kTextureFormat_Bc3_0x17:
 	case kTextureFormat_Bc3_0x20:
-	case kTextureFormat_Bc3_0x2A:
+	case kTextureFormat_Bc3_AYUV_0x2A:
 		{
 			n32 nBlockWidth = 4;
 			n32 nBlockHeight = 4;
@@ -348,6 +349,29 @@ int decode(u8* a_pBuffer, n32 a_nWidth, n32 a_nHeight, n32 a_nFormat, n32 a_nBlo
 							memcpy(pDest + (j * nInnerWidth * nOutterWidth + k) * nBytePerBlock, pSrc + (((j / nInnerHeight) * nOutterWidth + (k / nInnerWidth)) * (nInnerWidth * nInnerHeight) + j % nInnerHeight * nInnerWidth + k % nInnerWidth) * nBytePerBlock, nBytePerBlock);
 						}
 					}
+				}
+			}
+			if (a_nFormat == kTextureFormat_Bc3_AYUV_0x2A)
+			{
+				const u8* pSrc = pRGBA;
+				u8* pDest = pTemp;
+				u8* pA = pDest + a_nWidth * a_nHeight * 0;
+				u8* pY = pDest + a_nWidth * a_nHeight * 1;
+				u8* pU = pDest + a_nWidth * a_nHeight * 2;
+				u8* pV = pDest + a_nWidth * a_nHeight * 3;
+				for (n32 i = 0; i < a_nWidth * a_nHeight; i++)
+				{
+					pA[i] = pSrc[i * 4 + 1];
+					pY[i] = pSrc[i * 4 + 3];
+					pU[i] = pSrc[i * 4 + 2];
+					pV[i] = pSrc[i * 4 + 0];
+				}
+				//libyuv::I444AlphaToARGBMatrix(pY, a_nWidth, pU, a_nWidth, pV, a_nWidth, pA, a_nWidth, pRGBA, a_nWidth * 4, &libyuv::kYuvI601Constants, a_nWidth, a_nHeight, 0);
+				libyuv::I444ToARGB(pY, a_nWidth, pU, a_nWidth, pV, a_nWidth, pRGBA, a_nWidth * 4, a_nWidth, a_nHeight);
+				pDest = pRGBA;
+				for (n32 i = 0; i < a_nWidth * a_nHeight; i++)
+				{
+					pDest[i * 4 + 3] = pA[i];
 				}
 			}
 			delete[] pTemp;
@@ -497,7 +521,6 @@ int decode(u8* a_pBuffer, n32 a_nWidth, n32 a_nHeight, n32 a_nFormat, n32 a_nBlo
 		break;
 	case kTextureFormat_Bc3_0x17:
 	case kTextureFormat_Bc3_0x20:
-	case kTextureFormat_Bc3_0x2A:
 		pvrTextureHeaderV3.u64PixelFormat = pvrtexture::PixelType('r', 'g', 'b', 'a', 8, 8, 8, 8).PixelTypeID;
 		break;
 	case kTextureFormat_Bc4_0x19:
@@ -505,6 +528,9 @@ int decode(u8* a_pBuffer, n32 a_nWidth, n32 a_nHeight, n32 a_nFormat, n32 a_nBlo
 		break;
 	case kTextureFormat_Bc5_0x1F:
 		pvrTextureHeaderV3.u64PixelFormat = pvrtexture::PixelType('l', 'a', 0, 0, 8, 8, 0, 0).PixelTypeID;
+		break;
+	case kTextureFormat_Bc3_AYUV_0x2A:
+		pvrTextureHeaderV3.u64PixelFormat = pvrtexture::PixelType('b', 'g', 'r', 'a', 8, 8, 8, 8).PixelTypeID;
 		break;
 	}
 	pvrTextureHeaderV3.u32Height = a_nHeight;
@@ -562,7 +588,6 @@ void encode(u8* a_pData, n32 a_nWidth, n32 a_nHeight, n32 a_nFormat, n32 a_nMipm
 		break;
 	case kTextureFormat_Bc3_0x17:
 	case kTextureFormat_Bc3_0x20:
-	case kTextureFormat_Bc3_0x2A:
 		uPixelFormat = pvrtexture::PixelType('r', 'g', 'b', 'a', 8, 8, 8, 8).PixelTypeID;
 		break;
 	case kTextureFormat_Bc4_0x19:
@@ -572,6 +597,9 @@ void encode(u8* a_pData, n32 a_nWidth, n32 a_nHeight, n32 a_nFormat, n32 a_nMipm
 	case kTextureFormat_Bc5_0x1F:
 		uPixelFormat = pvrtexture::PixelType('l', 'a', 0, 0, 8, 8, 0, 0).PixelTypeID;
 		nByte = 2;
+		break;
+	case kTextureFormat_Bc3_AYUV_0x2A:
+		uPixelFormat = pvrtexture::PixelType('b', 'g', 'r', 'a', 8, 8, 8, 8).PixelTypeID;
 		break;
 	}
 	pvrtexture::Transcode(*pPVRTexture, uPixelFormat, ePVRTVarTypeUnsignedByteNorm, ePVRTCSpacelRGB, eCompressorQuality);
@@ -784,13 +812,35 @@ void encode(u8* a_pData, n32 a_nWidth, n32 a_nHeight, n32 a_nFormat, n32 a_nMipm
 			break;
 		case kTextureFormat_Bc3_0x17:
 		case kTextureFormat_Bc3_0x20:
-		case kTextureFormat_Bc3_0x2A:
+		case kTextureFormat_Bc3_AYUV_0x2A:
 			{
+				u8* pTemp = new u8[nMipmapWidthDest * nMipmapHeightDest * 4];
+				if (a_nFormat == kTextureFormat_Bc3_AYUV_0x2A)
+				{
+					const u8* pSrc = pRGBA;
+					u8* pDest = pTemp;
+					u8* pA = pDest + a_nWidth * a_nHeight * 0;
+					u8* pY = pDest + a_nWidth * a_nHeight * 1;
+					u8* pU = pDest + a_nWidth * a_nHeight * 2;
+					u8* pV = pDest + a_nWidth * a_nHeight * 3;
+					for (n32 i = 0; i < a_nWidth * a_nHeight; i++)
+					{
+						pA[i] = pSrc[i * 4 + 3];
+					}
+					libyuv::ARGBToI444(pSrc, a_nWidth * 4, pY, a_nWidth, pU, a_nWidth, pV, a_nWidth, a_nWidth, a_nHeight);
+					pDest = pRGBA;
+					for (n32 i = 0; i < a_nWidth * a_nHeight; i++)
+					{
+						pDest[i * 4 + 1] = pA[i];
+						pDest[i * 4 + 3] = pY[i];
+						pDest[i * 4 + 2] = pU[i];
+						pDest[i * 4 + 0] = pV[i];
+					}
+				}
 				n32 nBlockWidth = 4;
 				n32 nBlockHeight = 4;
 				n32 nBlockColumn = nMipmapWidthDest / nBlockWidth;
 				n32 nBlockRow = nMipmapHeightDest / nBlockHeight;
-				u8* pTemp = new u8[nMipmapWidthDest * nMipmapHeightDest * 4];
 				{
 					n32 nInnerWidth = 4;
 					n32 nInnerHeight = 4;
@@ -1001,7 +1051,7 @@ int decodeTex(const UChar* a_pTexFileName, const UChar* a_pPngFileNamePrefix)
 		delete[] pTex;
 		return 1;
 	}
-	if (pTexHeader->Format != kTextureFormat_R8_G8_B8_A8_0x07 && pTexHeader->Format != kTextureFormat_Bc1_0x13 && pTexHeader->Format != kTextureFormat_Bc2_0x15 && pTexHeader->Format != kTextureFormat_Bc3_0x17 && pTexHeader->Format != kTextureFormat_Bc4_0x19 && pTexHeader->Format != kTextureFormat_Bc1_0x1E && pTexHeader->Format != kTextureFormat_Bc5_0x1F && pTexHeader->Format != kTextureFormat_Bc3_0x20 && pTexHeader->Format != kTextureFormat_Bc3_0x2A)
+	if (pTexHeader->Format != kTextureFormat_R8_G8_B8_A8_0x07 && pTexHeader->Format != kTextureFormat_Bc1_0x13 && pTexHeader->Format != kTextureFormat_Bc2_0x15 && pTexHeader->Format != kTextureFormat_Bc3_0x17 && pTexHeader->Format != kTextureFormat_Bc4_0x19 && pTexHeader->Format != kTextureFormat_Bc1_0x1E && pTexHeader->Format != kTextureFormat_Bc5_0x1F && pTexHeader->Format != kTextureFormat_Bc3_0x20 && pTexHeader->Format != kTextureFormat_Bc3_AYUV_0x2A)
 	{
 		delete[] pTex;
 		return 1;
@@ -1130,7 +1180,7 @@ int encodeTex(const UChar* a_pTexFileName, const UChar* a_pPngFileNamePrefix)
 		delete[] pTex;
 		return 1;
 	}
-	if (pTexHeader->Format != kTextureFormat_R8_G8_B8_A8_0x07 && pTexHeader->Format != kTextureFormat_Bc1_0x13 && pTexHeader->Format != kTextureFormat_Bc2_0x15 && pTexHeader->Format != kTextureFormat_Bc3_0x17 && pTexHeader->Format != kTextureFormat_Bc4_0x19 && pTexHeader->Format != kTextureFormat_Bc1_0x1E && pTexHeader->Format != kTextureFormat_Bc5_0x1F && pTexHeader->Format != kTextureFormat_Bc3_0x20 && pTexHeader->Format != kTextureFormat_Bc3_0x2A)
+	if (pTexHeader->Format != kTextureFormat_R8_G8_B8_A8_0x07 && pTexHeader->Format != kTextureFormat_Bc1_0x13 && pTexHeader->Format != kTextureFormat_Bc2_0x15 && pTexHeader->Format != kTextureFormat_Bc3_0x17 && pTexHeader->Format != kTextureFormat_Bc4_0x19 && pTexHeader->Format != kTextureFormat_Bc1_0x1E && pTexHeader->Format != kTextureFormat_Bc5_0x1F && pTexHeader->Format != kTextureFormat_Bc3_0x20 && pTexHeader->Format != kTextureFormat_Bc3_AYUV_0x2A)
 	{
 		delete[] pTex;
 		return 1;
