@@ -10,6 +10,9 @@
 [submodule "dep/DirectXTex"]
 	path = dep/DirectXTex
 	url = https://github.com/dnasdw/libsundaowen_DirectXTex.git
+[submodule "dep/libyuv"]
+	path = dep/libyuv
+	url = https://github.com/dnasdw/libsundaowen_libyuv.git
 [submodule "dep/zlib"]
 	path = dep/zlib
 	url = https://github.com/dnasdw/libsundaowen_zlib.git
